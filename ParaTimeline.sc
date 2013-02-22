@@ -17,7 +17,7 @@ ParaTimeline {
 	var background, fillcolor;
 	var nodeCount, shape;
 	var startSelPoint, endSelPoint, refPoint;
-	var selNodes, outlinecolor, selectFillColor, selectStrokeColor;
+	var <selNodes, outlinecolor, selectFillColor, selectStrokeColor;
 	var keytracker, conFlag; // experimental
 	var nodeSize, swapNode;
 	var font, fontColor;
@@ -127,6 +127,7 @@ ParaTimeline {
 											node.refloc.x + (x - refPoint.x),
 											node.refloc.y + (y - refPoint.y)
 										));
+										trackAction.value(node);
 									});
 								);
 							}); 
@@ -256,16 +257,16 @@ ParaTimeline {
 
 				pen.strokeRect(Rect(0,0, bounds.width, bounds.height)); // background frame
 			})
-			.keyDownAction_({ |me, key, modifiers, unicode |
-				if(unicode == 127, {
-					selNodes.do({arg box; 
-						paraNodes.copy.do({arg node, i; 
-							if(box === node, {this.deleteNode(i)});
-						})
-					});
-				});
+			.keyDownAction_({ |me, key, modifiers, unicode, keycode |
+				//if(unicode == 127, {
+				//	selNodes.do({arg box; 
+				//		paraNodes.copy.do({arg node, i; 
+				//			if(box === node, {this.deleteNode(i)});
+				//		})
+				//	});
+				//});
 				if(unicode == 99, {conFlag = true;}); // c is for connecting
-				keyDownAction.value(me, key, modifiers, unicode);
+				keyDownAction.value(me, key, modifiers, unicode, keycode);
 				this.refresh;
 			})
 			.keyUpAction_({ |me, key, modifiers, unicode |
