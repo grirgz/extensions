@@ -95,6 +95,10 @@ Mdef : Mpattern {
 		^main.get_node(name);
 	}
 
+	*node_by_index { arg idx;
+		^main.panels.side.get_current_group.get_view_children[idx];
+	}
+
 	*show { arg name;
 		^main.panels.side.set_current_group(main.get_node(name));
 	}
