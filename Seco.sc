@@ -74,8 +74,8 @@ Mdef : Mpattern {
 		
 	}
 
-	*sample { arg name, slot=0, kind=\note;
-		//main.
+	*sample { arg samplekit=\default, slot=0, channels=\stereo;
+		^main.samplekit_manager.slot_to_bufnum(slot, samplekit, channels);
 	}
 
 	*dsample { arg name;
