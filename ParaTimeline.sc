@@ -231,9 +231,11 @@ ParaTimeline {
 					    			Rect(node.rect.left+5, node.rect.top+3, 80, 16));
 					    	});
 				    	},{
-					    	node.string.drawInRect(Rect(node.rect.left+node.size+5,
-				    								node.rect.top-3, 80, 16),   
-				    								font, fontColor);
+					    	node.string.drawInRect(
+								//Rect(node.rect.left+node.size+5, node.rect.top-3, 80, 16),   
+								Rect(node.rect.left+5, node.rect.top+3, 120, node.rect.height),   
+								font, fontColor
+							);
 				    	});
 
 				});
