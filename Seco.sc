@@ -2,7 +2,7 @@ Seco {
 	classvar <>main;
 	*init { arg initfun;
 		if(initfun.isNil) {
-			"/home/ggz/code/sc/seco/main.sc".load;
+			"~/code/sc/seco/main.sc".standardizePath.load;
 			main = ~mk_sequencer.value;
 		} {
 			main = initfun.();
