@@ -44,7 +44,7 @@ BufferPool {
 
 	*get_sample { |client,path, action=nil, server=nil|
 		var buf = paths.at(path); 
-		paths.debug("paths");
+		//paths.debug("paths");
 		if(buf.notNil, {
 			this.retain(buf,client,\void);
 		}, {
@@ -56,7 +56,7 @@ BufferPool {
 
 	*get_forced_stereo_sample { |client,path, action=nil, server=nil|
 		var buf = paths.at(path); 
-		paths.debug("paths");
+		//paths.debug("paths");
 		if(buf.notNil, {
 			this.retain(buf,client,\void);
 		}, {
@@ -69,7 +69,7 @@ BufferPool {
 	//TODO: write get_stereo_sample using readChannel [0, 0] if sample is mono
 	*get_mono_sample { |client,path, action=nil, server=nil|
 		var buf = mono_paths.at(path); 
-		mono_paths.debug("mono_paths");
+		//mono_paths.debug("mono_paths");
 		if(buf.notNil, {
 			this.retain(buf,client,\void);
 		}, {
@@ -109,7 +109,7 @@ BufferPool {
 
 	*release_client { arg client;
 		annotations.leafDo({ arg x, y;
-			[x,y].debug("buf, client");
+			[x,y].debug("BufferPool.release_client: buf, client");
 			if( x[1] == client ) { 
 				x[0].debug("to free");
 				this.release(x[0], x[1]);
