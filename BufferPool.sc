@@ -74,7 +74,7 @@ BufferPool {
 			this.retain(buf,client,\void);
 		}, {
 			buf = this.read_mono(client,\void,path,action,server);
-			mono_paths["__mono__"++path] = buf;
+			mono_paths[path] = buf;
 		});
 		^buf
 	}
