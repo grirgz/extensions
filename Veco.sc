@@ -11,6 +11,10 @@ Veco {
 		^main;
 
 	}
+	*new { arg name, pat;
+		var node = main.get_node_by_uname(name);
+		^node;
+	}
 	*init { arg initfun;
 		if(main.isNil) {
 			this.force_init(initfun)
