@@ -21,4 +21,11 @@ Veco {
 		}
 	}
 
+	*save { arg uname;
+		^main.get_nodeclip_by_uname(uname);
+	}
+
 }
+
+
+//Veco.save('2.2').stepseq
