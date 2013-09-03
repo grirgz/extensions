@@ -55,6 +55,10 @@ BufferPool {
 	}
 
 	*get_forced_stereo_sample { |client,path, action=nil, server=nil|
+		^this.get_stereo_sample(client, path, action, server);
+	}
+
+	*get_stereo_sample { |client,path, action=nil, server=nil|
 		var buf = paths.at(path); 
 		//paths.debug("paths");
 		if(buf.notNil, {
