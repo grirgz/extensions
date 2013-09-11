@@ -28,7 +28,8 @@ Veco {
 	}
 
 	*save { arg uname;
-		^main.get_nodeclip_by_uname(uname);
+		//^main.get_nodeclip_by_uname(uname);
+		^main.get_node_by_uname(uname).data;
 	}
 
 	*load_file { arg path;
@@ -133,4 +134,50 @@ BusDef {
 
 }
 
+
+Sdef {
+	classvar storage;
+	classvar specs;
+
+	*initClass {
+		storage = IdentityDictionary.new;
+		specs = IdentityDictionary.new;
+	}
+	
+	*new { arg node_name, name, kind, spec;
+		var bus;
+		switch(kind, 
+			nil, {
+				^Pfunc({storage[node_name+++name]});
+			},
+			\var, {
+				storage[node_name+++name] = storage[node_name+++name] ?? 1;
+				specs[node_name+++name] = spec;
+				^storage[node_name+++name];
+			}
+		);
+	}
+
+	*pbind { arg node_name, name, key;
+		key = key ?? name;
+		Pbind(key, Pfunc({storage[node_name+++name]}))
+	}
+
+	*get_value { arg node_name, name, val;
+		^storage[node_name+++name]
+	}
+
+	*set_value { arg node_name, name, val;
+		storage[node_name+++name] = val;
+		^storage[node_name+++name]
+	}
+
+	*edit { arg node_name, name, spec;
+		spec = spec ?? specs[node_name+++name];
+		~edit_sdef_variable.(node_name, name, spec);
+	}
+
+
+
+}
 //Veco.save('2.2').stepseq
