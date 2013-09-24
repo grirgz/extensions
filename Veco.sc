@@ -107,7 +107,7 @@ BusDef {
 	*new { arg name, rate, channels;
 		var bus;
 
-		if(rate.isNil) {
+		if(all.at(name).notNil or: {rate.isNil}) {
 			bus = all.at(name)
 		} {
 			if(channels.isNil) {
@@ -123,6 +123,11 @@ BusDef {
 		^bus;
 	}
 
+	*free { arg name;
+		all.at(name).free;
+		all.put(name, nil);
+	}
+
 	*freeClient {
 		this.freeAll;
 	}
@@ -136,48 +141,95 @@ BusDef {
 
 
 Sdef {
-	classvar storage;
-	classvar specs;
+	//classvar storage;
+	//classvar specs;
 
 	*initClass {
-		storage = IdentityDictionary.new;
-		specs = IdentityDictionary.new;
+		///storage = IdentityDictionary.new;
+		///specs = IdentityDictionary.new;
 	}
 	
-	*new { arg node_name, name, kind, spec;
+	*new { arg node_uname, name, kind, spec;
 		var bus;
-		switch(kind, 
-			nil, {
-				^Pfunc({storage[node_name+++name]});
-			},
-			\var, {
-				storage[node_name+++name] = storage[node_name+++name] ?? 1;
-				specs[node_name+++name] = spec;
-				^storage[node_name+++name];
-			}
-		);
+		var storage = ~score_storage;
+		if(kind.isNil) {
+			^storage.get(node_uname, name)
+		} {
+			^storage.define(node_uname, name, kind, spec);
+		}
 	}
 
-	*pbind { arg node_name, name, key;
-		key = key ?? name;
-		Pbind(key, Pfunc({storage[node_name+++name]}))
+	*load_data_from_clip { arg source_clip, dest_clip;
+		var storage = ~score_storage;
+		^storage.load_data_from_clip(source_clip, dest_clip);
 	}
 
-	*get_value { arg node_name, name, val;
-		^storage[node_name+++name]
+	*load_clip_data { arg clip;
+		var storage = ~score_storage;
+		^storage.load_clip_data(clip);
+
+
 	}
-
-	*set_value { arg node_name, name, val;
-		storage[node_name+++name] = val;
-		^storage[node_name+++name]
-	}
-
-	*edit { arg node_name, name, spec;
-		spec = spec ?? specs[node_name+++name];
-		~edit_sdef_variable.(node_name, name, spec);
-	}
-
-
-
 }
 //Veco.save('2.2').stepseq
+
+
++ NodeProxy {
+	isource_ { arg obj;
+		if(this.isPlaying == true) {
+			this.put(nil, obj, 0)
+		} {
+			this.put(nil, obj, 0, nil, false);
+		}
+	}
+}
+
+
+//Sdef {
+//	classvar storage;
+//	classvar specs;
+//
+//	*initClass {
+//		storage = IdentityDictionary.new;
+//		specs = IdentityDictionary.new;
+//	}
+//	
+//	*new { arg node_name, name, kind, spec;
+//		var bus;
+//		switch(kind, 
+//			nil, {
+//				^Pfunc({storage[node_name+++name]});
+//			},
+//			\var, {
+//				storage[node_name+++name] = storage[node_name+++name] ?? 1;
+//				specs[node_name+++name] = spec;
+//				^storage[node_name+++name];
+//			},
+//			\sampler, {
+//
+//			}
+//		);
+//	}
+//
+//	*pbind { arg node_name, name, key;
+//		key = key ?? name;
+//		Pbind(key, Pfunc({storage[node_name+++name]}))
+//	}
+//
+//	*get_value { arg node_name, name, val;
+//		^storage[node_name+++name]
+//	}
+//
+//	*set_value { arg node_name, name, val;
+//		storage[node_name+++name] = val;
+//		^storage[node_name+++name]
+//	}
+//
+//	*edit { arg node_name, name, spec;
+//		spec = spec ?? specs[node_name+++name];
+//		~edit_sdef_variable.(node_name, name, spec);
+//	}
+//
+//
+//
+//}

@@ -84,15 +84,16 @@ BufferPool {
 	}
 
 	*retain { |buf,client,name|
-		if(annotations.at(buf,client).notNil,{
-			//(client.asString++" already retained buffer "++buf.path).warn;
-		}, {
+		//if(annotations.at(buf,client).notNil,{
+		//	//(client.asString++" already retained buffer "++buf.path).warn;
+		//}, {
 			counts.add(buf);
 			annotations.put(buf,client,name);
 			this.watchServer(buf.server);
-		});
+		//});
 	}
 	*release { |buf,client|
+		// seems broken ?
 		var dict,key;
 		if(annotations.at(buf,client).isNil,{
 			(client++" already released buffer "++buf.path).warn;
@@ -109,6 +110,10 @@ BufferPool {
 				//FIXME: mono samples never freed
 			})
 		});
+	}
+
+	*is_freed { arg buf;
+		counts.includes(buf)
 	}
 
 	*release_client { arg client;
