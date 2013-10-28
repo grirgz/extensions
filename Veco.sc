@@ -184,6 +184,16 @@ Sdef {
 	}
 }
 
++ Boolean {
+	blend { arg that, blendfact;
+		if(blendfact < 0.5) {
+			^this
+		} {
+			^that
+		}
+	}
+}
+
 
 //Sdef {
 //	classvar storage;
