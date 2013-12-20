@@ -22,9 +22,12 @@ MIDIController {
 
 MIDIBoard {
 	classvar <controls;
+	classvar <>permanent;
+
 	*initClass {
 		//root = "~/Musique/sc/samplekit".standardizePath;
 		controls = IdentityDictionary.new;
+		permanent = false;
 	}
 
 	*define { arg channel, defs;
