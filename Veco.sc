@@ -13,6 +13,11 @@ Veco {
 
 	}
 
+	*open_project { arg path;
+		this.init;
+		~veco_project_manager.open_project(path);
+	}
+
 	//*init_groups {
 	//	fxgroup = Group.after(1);
 	//}
