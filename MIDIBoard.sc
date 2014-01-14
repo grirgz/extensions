@@ -81,6 +81,12 @@ MIDIBoard {
 			}
 		}
 	}
+
+	*unmap { arg ... args;
+		var key;
+		key = args.removeAt(0);
+		controls[key].unmap(*args);
+	}
 }
 
 PresetDef {

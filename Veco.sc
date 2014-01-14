@@ -164,6 +164,16 @@ Sdef {
 		}
 	}
 
+	*force { arg node_uname, name, kind, spec;
+		var bus;
+		var storage = ~score_storage;
+		if(kind.isNil) {
+			^storage.get(node_uname, name)
+		} {
+			^storage.define(node_uname, name, kind, spec, true);
+		}
+	}
+
 	*load_data_from_clip { arg source_clip, dest_clip;
 		var storage = ~score_storage;
 		^storage.load_data_from_clip(source_clip, dest_clip);
