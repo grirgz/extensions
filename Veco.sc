@@ -32,6 +32,11 @@ Veco {
 		}
 	}
 
+	*do { arg fun;
+		var name = ~name;
+		fun.(name);
+	}
+
 	*save { arg uname;
 		//^main.get_nodeclip_by_uname(uname);
 		^main.get_node_by_uname(uname).data;
