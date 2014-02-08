@@ -117,5 +117,15 @@ PresetDef {
 		^res;
 
 	}
+
+	*force { arg key ... args;
+		var res;
+		res = VecoLib.lib[\class_preset].new(*args);
+		res.node_uname = key;
+		res.name = key;
+		all[key] = res;
+		^res;
+		
+	}
 	
 }
