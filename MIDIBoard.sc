@@ -31,6 +31,11 @@ MIDIBoard {
 	}
 
 	*define { arg channel, defs;
+		var source_uid = nil;
+		if(channel.isSequenceableCollection) {
+			source_uid = channel[1];
+			channel = channel[0]
+		};
 		defs.pairsDo { arg key, val;
 			var kind=\cc, keychannel;
 			if(val.class == Association) {
@@ -46,7 +51,9 @@ MIDIBoard {
 			key.debug("kkKKey");
 			val.debug("kkKKeyVVVVVVVVVVVVV");
 			kind.debug("kkKKeykinddddddddddd");
+			controls[key].changed(\free_map);
 			controls[key] = MIDIController.new(val, key, keychannel, kind);
+			controls[key].source_uid = source_uid;
 			controls[key].debug("YYYYYYYYYYYYYYYY");
 		
 		};
@@ -80,6 +87,12 @@ MIDIBoard {
 				controls[key].map(*args);
 			}
 		}
+	}
+
+	*unmap { arg ... args;
+		var key;
+		key = args.removeAt(0);
+		controls[key].unmap(*args);
 	}
 }
 

@@ -32,6 +32,11 @@ Veco {
 		}
 	}
 
+	*do { arg fun;
+		var name = ~name;
+		fun.(name);
+	}
+
 	*save { arg uname;
 		//^main.get_nodeclip_by_uname(uname);
 		^main.get_node_by_uname(uname).data;
@@ -161,6 +166,16 @@ Sdef {
 			^storage.get(node_uname, name)
 		} {
 			^storage.define(node_uname, name, kind, spec);
+		}
+	}
+
+	*force { arg node_uname, name, kind, spec;
+		var bus;
+		var storage = ~score_storage;
+		if(kind.isNil) {
+			^storage.get(node_uname, name)
+		} {
+			^storage.define(node_uname, name, kind, spec, true);
 		}
 	}
 
