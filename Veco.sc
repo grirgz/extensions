@@ -34,7 +34,9 @@ Veco {
 
 	*do { arg fun;
 		var name = ~name;
-		fun.(name);
+		var namex = ~namex;
+		var index = ~index;
+		fun.(name, namex, index);
 	}
 
 	*save { arg uname;
@@ -43,7 +45,12 @@ Veco {
 	}
 
 	*load_file { arg path;
-		(main.project_path +/+ path).load;
+		^ (main.project_path +/+ path).load;
+	}
+
+	*exec_file { arg path;
+		path.debug("exec_file");
+		^ ~execute_till_special_end.((main.project_path +/+ path));
 	}
 
 	*load_lib { arg path;
