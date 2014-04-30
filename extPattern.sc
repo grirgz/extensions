@@ -29,3 +29,10 @@ Plast : FilterPattern {
 		^event;
 	}
 }
+
+
++ Pattern {
+	step { arg n; 
+		^Pstep(this, n)
+	}
+}
