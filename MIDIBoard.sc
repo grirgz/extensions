@@ -4,8 +4,12 @@ VecoLib {
 	*load_lib {
 		lib = Environment.new;
 		lib.use({
+			debug("loading midi.scd");
 			(Platform.userExtensionDir +/+ "seco/seco/vecolib/midi.scd").standardizePath.load;
+			debug("loading preset.scd");
 			(Platform.userExtensionDir +/+ "seco/seco/vecolib/preset.scd").standardizePath.load;
+			debug("loading rack.scd");
+			(Platform.userExtensionDir +/+ "seco/seco/vecolib/rack.scd").standardizePath.load;
 		})
 	}
 
@@ -54,7 +58,8 @@ MIDIBoard {
 			controls[key].changed(\free_map);
 			controls[key] = MIDIController.new(val, key, keychannel, kind);
 			controls[key].source_uid = source_uid;
-			controls[key].debug("YYYYYYYYYYYYYYYY");
+			controls[key].install_midi_responder;
+			//controls[key].debug("YYYYYYYYYYYYYYYY");
 		
 		};
 	}
@@ -96,6 +101,16 @@ MIDIBoard {
 	}
 }
 
+Rack {
+	*new { arg ... args;
+		^VecoLib.lib[\class_rack].new(\noname,\noname, *args);
+	}
+
+	*newFrom { arg ... args;
+		^VecoLib.lib[\class_rack].new_from_object(*args);
+	}
+}
+
 PresetDef {
 	classvar <>all;
 
@@ -126,6 +141,28 @@ PresetDef {
 		all[key] = res;
 		^res;
 		
+	}
+	
+}
+
++ Pdef {
+	setBusMode { arg ... argnames;
+		var exclude = Set[\legato, \sustain, \dur, \stretch];
+		(argnames.asSet.difference(exclude)).do { arg argname;
+			var bus;
+			var oldval;
+			oldval = this.get(argname);
+			if(oldval.class == Float) {
+				BusDef(\pdef+++ this.key +++argname, \control);
+				bus = BusDef(\pdef+++ this.key +++argname);
+				bus.set(oldval);
+				this.set(argname, bus.asMap)
+			}
+		}
+	}
+
+	asRack {
+		^Rack.newFrom(this)
 	}
 	
 }
