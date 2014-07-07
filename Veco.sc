@@ -1,21 +1,117 @@
 
 Veco {
-	classvar <>main;
 	classvar <>fxgroup;
-	*force_init { arg initfun;
-		if(initfun.isNil) {
-			(Platform.userExtensionDir +/+ "seco/seco/veco/main.scd").standardizePath.load;
-			main = ~sceneset;
-		} {
-			main = initfun.();
-		};
-		^main;
+	classvar <>projects;
+	classvar <>project_slots;
 
+	*initClass {
+		projects = Dictionary.new;
+		project_slots = Array.newClear(8);
+		project_slots[0] = topEnvironment;
+	}
+
+	*force_init {
+		(Platform.userExtensionDir +/+ "seco/seco/veco/main.scd").standardizePath.load;
+		^this.main;
+	}
+
+	*main { 
+		^ ~veco
+	}
+
+	*relpath_to_abspath { arg path;
+		if(PathName(path).isRelativePath) {
+			path = ~veco_code_path +/+ path
+		};
+		^path;
 	}
 
 	*open_project { arg path;
 		this.init;
+		path = this.relpath_to_abspath(path);
 		~veco_project_manager.open_project(path);
+	}
+
+	*open_main_project { arg path;
+		//topEnvironment.push; // switch project is used
+		this.open_project(path);
+	}
+
+	*activate_main_project { arg change_vim_path=true;
+		topEnvironment.push;
+		~veco.clip.activate;
+		if(change_vim_path) {
+			"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
+		};
+	}
+
+	*open_side_project { arg path;
+		path = this.relpath_to_abspath(path);
+		if(projects[path].isNil) {
+			projects[path] = Environment.new;
+			projects[path].parent = topEnvironment;
+			projects[path][\veco] = nil;
+		};
+		projects[path].use({
+			this.open_project(path);
+		});
+	}
+
+	*close_side_project { arg path;
+		path = this.relpath_to_abspath(path);
+		if(projects[path].notNil) {
+			projects[path].use({
+				Veco.main.project_destructor;
+			});
+		};
+	}
+
+	*activate_side_project { arg path, change_vim_path=true;
+		path = this.relpath_to_abspath(path);
+		if(path == topEnvironment[\veco_project_path]) {
+			this.activate_main_project;
+		} {
+			if(projects[path].notNil) {
+				projects[path].push;
+				~veco.clip.activate;
+				if(change_vim_path) {
+					"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
+				};
+			};
+		}
+	}
+
+	*switch_project_slot { arg num, change_vim_path=true;
+		var env = project_slots[num];
+		var path;
+		if(env.isNil) {
+			if(num == 0) {
+				// should not because already initialized
+				project_slots[num] = topEnvironment;
+				project_slots[num].push;
+				if(change_vim_path) {
+					"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
+				};
+				~veco.clip.activate;
+			} {
+				project_slots[num] = Environment.new;
+				project_slots[num].parent = topEnvironment;
+				project_slots[num][\veco] = nil;
+				project_slots[num].push;
+				path = this.relpath_to_abspath("start");
+				this.open_project(path);
+			};
+			if(change_vim_path) {
+				"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
+			};
+		} {
+			project_slots[num].push;
+			if(change_vim_path) {
+				"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
+			};
+			~veco.clip.activate;
+		};
+	
 	}
 
 	//*init_groups {
@@ -23,11 +119,12 @@ Veco {
 	//}
 
 	*new { arg name, pat;
-		var node = main.get_node_by_uname(name);
+		var node = this.main.get_node_by_uname(name);
 		^node;
 	}
+
 	*init { arg initfun;
-		if(main.isNil) {
+		if(this.main.isNil) {
 			this.force_init(initfun)
 		}
 	}
@@ -41,20 +138,20 @@ Veco {
 
 	*save { arg uname;
 		//^main.get_nodeclip_by_uname(uname);
-		^main.get_node_by_uname(uname).data;
+		^this.main.get_node_by_uname(uname).data;
 	}
 
 	*load_file { arg path;
-		^ (main.project_path +/+ path).load;
+		^ (this.main.project_path +/+ path).load;
 	}
 
 	*exec_file { arg path;
 		path.debug("exec_file");
-		^ ~execute_till_special_end.((main.project_path +/+ path));
+		^ ~execute_till_special_end.((this.main.project_path +/+ path));
 	}
 
 	*load_lib { arg path;
-		(main.lib_path +/+ path).load;
+		(this.main.lib_path +/+ path).load;
 	}
 
 }
