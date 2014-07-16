@@ -14,7 +14,8 @@ VecoLib {
 	}
 
 	*initClass {
-		this.load_lib;
+		//Class.initClassTree(ControlSpec);
+		//this.load_lib;
 	}
 }
 

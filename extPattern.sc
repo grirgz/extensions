@@ -35,4 +35,14 @@ Plast : FilterPattern {
 	step { arg n; 
 		^Pstep(this, n)
 	}
+
+	bcoin {
+		^this.collect({ arg x;
+			if(x == true or: { x == false }) {
+				x
+			} {
+				x.coin
+			}
+		})
+	}
 }

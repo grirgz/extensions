@@ -3,15 +3,22 @@ Veco {
 	classvar <>fxgroup;
 	classvar <>projects;
 	classvar <>project_slots;
+	classvar <>extension_path;
+	classvar <>user_path;
+	classvar <>file_editor;
 
 	*initClass {
 		projects = Dictionary.new;
 		project_slots = Array.newClear(8);
 		project_slots[0] = topEnvironment;
+		Class.initClassTree(Platform); // needed ?
+		Class.initClassTree(ControlSpec); // needed ?
+		extension_path = Platform.userExtensionDir +/+ "seco/seco/veco";
+		user_path = "~/code/sc/seco/vlive/".standardizePath;
 	}
 
 	*force_init {
-		(Platform.userExtensionDir +/+ "seco/seco/veco/main.scd").standardizePath.load;
+		(extension_path +/+ "main.scd").standardizePath.load;
 		^this.main;
 	}
 
@@ -19,9 +26,13 @@ Veco {
 		^ ~veco
 	}
 
+	*gui {
+		~launchpad_gui.make_gui;
+	}
+
 	*relpath_to_abspath { arg path;
 		if(PathName(path).isRelativePath) {
-			path = ~veco_code_path +/+ path
+			path = user_path +/+ path
 		};
 		^path;
 	}
