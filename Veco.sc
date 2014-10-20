@@ -103,6 +103,7 @@ Veco {
 				if(change_vim_path) {
 					"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
 				};
+				//~veco.clip.skip_first_time = true;
 				~veco.clip.activate;
 			} {
 				project_slots[num] = Environment.new;
@@ -120,6 +121,7 @@ Veco {
 			if(change_vim_path) {
 				"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
 			};
+			//~veco.clip.skip_first_time = true;
 			~veco.clip.activate;
 		};
 	
@@ -162,7 +164,8 @@ Veco {
 	}
 
 	*load_lib { arg path;
-		(this.main.lib_path +/+ path).load;
+		//(this.main.lib_path +/+ path).load;
+		^ ~execute_till_special_end.((this.main.lib_path +/+ path));
 	}
 
 }
