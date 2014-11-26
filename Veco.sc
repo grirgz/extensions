@@ -110,6 +110,26 @@ BufDef {
 
 }
 
+WavetableDef : BufDef {
+
+	classvar <>client = \veco;
+	classvar <>all;
+	classvar <>root;
+
+	*initClass {
+		all = IdentityDictionary.new;
+		root = "~/Musique/sc/samplekit/wavetable".standardizePath;
+	}
+	
+	*new { arg name, path;
+		path = this.my_new(name, path);
+		path.debug("WavetableDef.new: path");
+		^BufferPool.get_wavetable_sample(client, path);
+	}
+
+
+}
+
 BusDef {
 	
 	classvar <>client = \veco;

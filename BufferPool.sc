@@ -1,6 +1,6 @@
 BufferPool {
 
-	classvar <counts,<annotations,<paths, <mono_paths;
+	classvar <counts,<annotations,<paths, <mono_paths, <wavetable_paths;
 
 	*alloc { |client,name,numFrames,numChannels=1,server=nil|
 		var prev,buf;
@@ -22,6 +22,32 @@ BufferPool {
 		var prev,buf;
 		server = server ?? Server.default;
 		buf = Buffer.readChannel(server, path, 0, -1, [0], action); //FIXME: can't choose the channel
+		this.retain(buf,client,name);
+		^buf
+	}
+
+	*read_wavetable { |client,name,path, action=nil, server=nil|
+		var prev,buf;
+		var soundfile;
+		var signal;
+		var size;
+		server = server ?? Server.default;
+
+		// load sample as signal
+
+		soundfile = SoundFile.openRead(path);
+		size = soundfile.numFrames;
+		signal = Signal.newClear(size);
+		soundfile.readData(signal);
+		soundfile.close; // close the file
+
+		// load signal in wavetable buffer 
+
+		// FIXME: action ?
+		buf = Buffer.alloc(server, size*2, 1);
+		signal = signal.asWavetable;
+		buf.loadCollection(signal);
+
 		this.retain(buf,client,name);
 		^buf
 	}
@@ -83,6 +109,18 @@ BufferPool {
 		^buf
 	}
 
+	*get_wavetable_sample { |client,path, action=nil, server=nil|
+		var buf = wavetable_paths.at(path); 
+		//mono_paths.debug("mono_paths");
+		if(buf.notNil, {
+			this.retain(buf,client,\void);
+		}, {
+			buf = this.read_wavetable(client,\void,path,action,server);
+			wavetable_paths[path] = buf;
+		});
+		^buf
+	}
+
 	*retain { |buf,client,name|
 		//if(annotations.at(buf,client).notNil,{
 		//	//(client.asString++" already retained buffer "++buf.path).warn;
@@ -106,8 +144,11 @@ BufferPool {
 				} {
 					paths[buf.path] = nil;
 				};
+				if(wavetable_paths[buf.path].notNil) {
+					// FIXME: strange to test for channel number for mono and stereo but not for wavetable
+					wavetable_paths[buf.path] = nil;
+				};
 				buf.free;
-				//FIXME: mono samples never freed
 			})
 		});
 	}
@@ -137,6 +178,7 @@ BufferPool {
 		annotations = MultiLevelIdentityDictionary.new;
 		paths = Dictionary.new;
 		mono_paths = Dictionary.new;
+		wavetable_paths = Dictionary.new;
 	}
 	*watchServer { |server|
 		if(NotificationCenter.registrationExists(server,\newAllocators,this).not,{
