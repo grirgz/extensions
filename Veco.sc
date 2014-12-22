@@ -255,6 +255,10 @@ BusDef {
 	*new { arg name, rate, channels;
 		var bus;
 
+		//if(~veco_project_path.notNil) {
+		//	client = ~veco_project_path;
+		//}
+
 		if(all.at(name).notNil or: {rate.isNil}) {
 			bus = all.at(name)
 		} {
