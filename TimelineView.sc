@@ -12,6 +12,7 @@ TimelineView : SCViewHolder {
 	var <>viewport;
 	var <>areasize;
 	var <>createNodeHook;
+	var <>deleteNodeHook;
 	var <>paraNodes, connections; 
 	var chosennode, mouseTracker;
 	var <>quant;
@@ -26,7 +27,7 @@ TimelineView : SCViewHolder {
 	var backgrDrawFunc;
 	var background, fillcolor;
 	var nodeCount, shape;
-	var startSelPoint, endSelPoint, refPoint;
+	var startSelPoint, endSelPoint, refPoint, refWidth;
 	var <selNodes, outlinecolor, selectFillColor, selectStrokeColor;
 	var keytracker, conFlag; // experimental
 	var nodeSize, swapNode;
@@ -132,6 +133,7 @@ TimelineView : SCViewHolder {
 		startSelPoint = 0@0;
 		endSelPoint = 0@0;
 		refPoint = 0@0;
+		refWidth = 0;
 		shape = "rect";
 		conFlag = false;
 		nodeSize = 8;
@@ -151,63 +153,84 @@ TimelineView : SCViewHolder {
 
 				var bounds = this.bounds;
 				var npos;
+				var nquant = this.gridPointToNormPoint(quant);
 				npos = this.pixelPointToNormPoint(Point(px,py));
 				mouseDownAction.(me, px, py, mod, buttonNumber, clickCount);
 				[px, py, npos].debug("mouseDownAction_ npos");
 				chosennode = this.findNode(npos.x, npos.y);
-				if( (mod & 0x00040000) != 0, {	// == 262401
-					var nodesize = Point(1/8,1);
-					nodesize = this.gridPointToNormPoint(nodesize);
-					this.createNode1(npos.x, npos.y, nodesize, fillcolor);
-					//paraNodes.add(TimelineViewNode.new(x,y, fillcolor, bounds, nodeCount, nodeSize));
-					//nodeCount = nodeCount + 1;
-					//paraNodes.do({arg node; // deselect all nodes
-					// 		node.outlinecolor = Color.black; 
-					//		node.refloc = node.nodeloc;
-					//});
-					//startSelPoint = x-10@y-10;
-					//endSelPoint =   x-10@y-10;
-				}, {
-					if(chosennode !=nil, { // a node is selected
-						refPoint = npos; // var used here for reference in trackfunc
-						
-						if(conFlag == true, { // if selected and "c" then connection is possible
-							paraNodes.do({arg node, i; 
-								if(node === chosennode, {
-									a = i;
-								});
-							});
-							selNodes.do({arg selnode, j; 
+
+				case
+					{ mod.isCtrl  } {
+						// create node mode
+
+						var nodesize = Point(1/8,1);
+						var newpos;
+						nodesize = this.gridPointToNormPoint(nodesize);
+						if(enableQuant) {
+							newpos = npos.round(nquant); 
+						} {
+							newpos = npos; 
+						};
+						this.createNode1(newpos.x, newpos.y, nodesize, fillcolor);
+						refPoint = newpos; // var used here for reference in trackfunc
+						refWidth = nodesize.x;
+						chosennode = paraNodes.last;
+						//paraNodes.add(TimelineViewNode.new(x,y, fillcolor, bounds, nodeCount, nodeSize));
+						//nodeCount = nodeCount + 1;
+						//paraNodes.do({arg node; // deselect all nodes
+						// 		node.outlinecolor = Color.black; 
+						//		node.refloc = node.nodeloc;
+						//});
+						//startSelPoint = x-10@y-10;
+						//endSelPoint =   x-10@y-10;
+					}
+					{ mod.isShift } {
+						if(chosennode !=nil) { // a node is selected
+							refPoint = npos; // var used here for reference in trackfunc
+							refWidth = chosennode.width;
+						}
+					}
+					{
+						if(chosennode !=nil, { // a node is selected
+							refPoint = npos; // var used here for reference in trackfunc
+							
+							if(conFlag == true, { // if selected and "c" then connection is possible
 								paraNodes.do({arg node, i; 
-									if(node === selnode, {
-										b = i;
-										//if(a != b) {
-											this.createConnection(a, b);
-										//}
+									if(node === chosennode, {
+										a = i;
+									});
+								});
+								selNodes.do({arg selnode, j; 
+									paraNodes.do({arg node, i; 
+										if(node === selnode, {
+											b = i;
+											//if(a != b) {
+												this.createConnection(a, b);
+											//}
+										});
 									});
 								});
 							});
-						});
 
-						if(selNodes.size < 2) {
+							if(selNodes.size < 2) {
+								paraNodes.do({arg node; // deselect all nodes
+									if(node !== chosennode) {
+										this.deselectNode(node);
+									}
+								});
+							};
+							this.selectNode(chosennode);
+
+							downAction.value(chosennode);
+						}, { // no node is selected
 							paraNodes.do({arg node; // deselect all nodes
-								if(node !== chosennode) {
-									this.deselectNode(node);
-								}
+								this.deselectNode(node);
 							});
-						};
-						this.selectNode(chosennode);
-
-						downAction.value(chosennode);
-					}, { // no node is selected
-					 	paraNodes.do({arg node; // deselect all nodes
-							this.deselectNode(node);
-					 	});
-						startSelPoint = npos;
-						endSelPoint = npos;
-						this.refresh;
-					});
-				});
+							startSelPoint = npos;
+							endSelPoint = npos;
+							this.refresh;
+						});
+					};
 			})
 
 			.mouseMoveAction_({|me, px, py, mod|
@@ -229,37 +252,61 @@ TimelineView : SCViewHolder {
 					res;
 				};
 
+
 				mouseMoveAction.(me, px, py, mod);
-				if(chosennode != nil, { // a node is selected
-					chosennode.setLoc_(newpos.(chosennode));
-					block {|break|
-						selNodes.do({arg node; 
-							if(node === chosennode,{ // if the mousedown box is one of selected
-								break.value( // then move the whole thing ...
-									selNodes.do({arg node; // move selected boxes
-										node.setLoc_(
-											newpos.(node)
-										);
-										trackAction.value(node);
+					case
+						{ mod.isShift or: mod.isCtrl } {
+							// resize mode
+							if(chosennode != nil) { // a node is selected
+								var newwidth;
+								newwidth = refWidth + (npos.x - refPoint.x);
+								if( enableQuant ) {
+									newwidth = newwidth.round(nquant.x);
+									newwidth = newwidth.max(nquant.x);
+								} {
+									newwidth = newwidth.max(0);
+								};
+								chosennode.width = newwidth;
+
+								//resizeMode = true;
+								//"resize mode!!!!".debug;
+								trackAction.value(chosennode, chosennode.spritenum, this.normPointToGridPoint(chosennode.nodeloc));
+								this.refresh;
+							}
+
+
+						} {
+							// move node
+							if(chosennode != nil) { // a node is selected
+								chosennode.setLoc_(newpos.(chosennode));
+								block {|break|
+									selNodes.do({arg node; 
+										if(node === chosennode,{ // if the mousedown box is one of selected
+											break.value( // then move the whole thing ...
+												selNodes.do({arg node; // move selected boxes
+													node.setLoc_(
+														newpos.(node)
+													);
+													trackAction.value(node, node.spritenum, this.normPointToGridPoint(node.nodeloc));
+												});
+											);
+										}); 
 									});
-								);
-							}); 
-						});
-					};
-					trackAction.value(chosennode);
-					this.refresh;
-				}, { // no node is selected
-					endSelPoint = npos;
-					this.refresh;
-				});
+								};
+								trackAction.value(chosennode, chosennode.spritenum, this.normPointToGridPoint(chosennode.nodeloc));
+							} { // no node is selected
+								if( startSelPoint.debug("startSelPoint") != Point(0,0) ) {
+									endSelPoint = npos;
+								}
+							};
+							this.refresh;
+						};
 			})
 
 			.mouseOverAction_({arg me, x, y;
 				var bounds = this.bounds;
 				chosennode = this.findNode(x, y);
 				if(chosennode != nil, {  
-					relX = chosennode.nodeloc.x - bounds.left - 0.5;
-					relY = chosennode.nodeloc.y - bounds.top - 0.5;
 					overAction.value(chosennode);
 				});
 			})
@@ -395,17 +442,28 @@ TimelineView : SCViewHolder {
 				pen.color = Color.black;
 				pen.strokeRect(Rect(0,0, bounds.width, bounds.height)); 
 			})
+
 			.keyDownAction_({ |me, key, modifiers, unicode, keycode |
+				[key, modifiers, unicode, keycode].debug("key, modifiers, unicode, keycode");
 
 				// deleting nodes
 
 				if(unicode == 127, {
 					selNodes.do({arg box; 
 						paraNodes.copy.do({arg node, i; 
-							if(box === node, {this.deleteNode(i)});
+							if(box === node, {this.deleteNode(node)});
 						})
 					});
 				});
+
+				// quantize
+
+				if(key == $q) {
+					var nquant = this.gridPointToNormPoint(quant);
+					selNodes.do { arg node;
+						node.setLoc = node.nodeloc.round(nquant);
+					}
+				};
 
 				// connecting
 
@@ -416,6 +474,7 @@ TimelineView : SCViewHolder {
 				keyDownAction.value(me, key, modifiers, unicode, keycode);
 				this.refresh;
 			})
+
 			.keyUpAction_({ |me, key, modifiers, unicode |
 				if(unicode == 99, {conFlag = false;}); // c is for connecting
 
@@ -439,14 +498,16 @@ TimelineView : SCViewHolder {
 		var x, y;
 		var bounds = this.bounds;
 		var node;
+		var nodeidx;
 		x = argX;
 		y = argY;
 		[argX, argY, x,y, bounds].debug("createNode1");
 		fillcolor = color ? fillcolor;
-		node = TimelineViewNode.new(x, y, fillcolor, bounds, nodeCount, size, nodeAlign);
-		paraNodes.add(node);
+		nodeidx = nodeCount;
+		node = TimelineViewNode.new(x, y, fillcolor, bounds, nodeidx, size, nodeAlign);
 		nodeCount = nodeCount + 1;
-		createNodeHook.(node, nodeCount);
+		paraNodes.add(node);
+		createNodeHook.(node, nodeidx);
 		if(refresh == true, {this.refresh});
 	}
 		
@@ -479,7 +540,9 @@ TimelineView : SCViewHolder {
 		if(refresh == true, {this.refresh});
 	}
 	
-	deleteNode {arg nodenr, refresh=true; var del;
+	deleteNode { arg node, refresh=true;
+		var del;
+		var nodenr = node.spritenum;
 		del = 0;
 		connections.copy.do({arg conn, i; 
 			if(conn.includes(nodenr), { connections.removeAt((i-del)); del=del+1;})
@@ -487,7 +550,8 @@ TimelineView : SCViewHolder {
 		connections.do({arg conn, i; 
 			if(conn[0]>nodenr,{conn[0]=conn[0]-1});if(conn[1]>nodenr,{conn[1]= conn[1]-1});
 		});
-		if(paraNodes.size > 0, {paraNodes.removeAt(nodenr)});
+		deleteNodeHook.(node, nodenr);
+		if(paraNodes.size > 0, {paraNodes.remove(node)});
 		if(refresh == true, {this.refresh});
 	}
 	
@@ -799,6 +863,7 @@ TimelineViewNode {
 	extent_ { arg point;
 		width = point.x;
 		height = point.y;
+		this.compute_rect;
 	}
 	
 	setColor_ {arg argcolor;

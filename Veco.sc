@@ -6,6 +6,7 @@ Veco {
 	classvar <>extension_path;
 	classvar <>user_path;
 	classvar <>file_editor;
+	classvar <>save_hook; // used by shortcut_clip to load data in the virtual clip instead of the target one
 
 	*initClass {
 		projects = Dictionary.new;
@@ -151,7 +152,11 @@ Veco {
 
 	*save { arg uname;
 		//^main.get_nodeclip_by_uname(uname);
-		^this.main.get_node_by_uname(uname).data;
+		if(save_hook.notNil) {
+			^save_hook.(uname)
+		} {
+			^this.main.get_node_by_uname(uname).data;
+		}
 	}
 
 	*load_file { arg path;
