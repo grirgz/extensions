@@ -1,0 +1,75 @@
+5c5
+< 	var <>clock, <>quant;
+---
+> 	var <>clock, quant;
+6a7
+> 	classvar <>defaultQuant;
+15a17,28
+> 	quant {
+> 		if(quant.isNil) {
+> 			^defaultQuant;
+> 		} {
+> 			^quant;
+> 		}
+> 	}
+> 
+> 	quant_ { arg val;
+> 		quant = val;
+> 	}
+> 
+70c83
+< 		if(this.isPlaying) { objects.do { |item| item.pause(clock, quant) } };
+---
+> 		if(this.isPlaying) { objects.do { |item| item.pause(clock, this.quant) } };
+77c90
+< 		if(this.isPlaying) { objects.do { |item| item.resume(clock, quant) } };
+---
+> 		if(this.isPlaying) { objects.do { |item| item.resume(clock, this.quant) } };
+162c175
+< 			this.rebuildDeepToBundle(bundle, true, nil, [this.fadeTime, quant, clock]);
+---
+> 			this.rebuildDeepToBundle(bundle, true, nil, [this.fadeTime, this.quant, clock]);
+176c189
+< 			bundle.schedSend(server, clock ? TempoClock.default, quant);
+---
+> 			bundle.schedSend(server, clock ? TempoClock.default, this.quant);
+215,216c228,229
+< 		this.rebuildDeepToBundle(bundle, false, nil, [this.fadeTime, quant, clock]);
+< 		bundle.schedSend(server, clock ? TempoClock.default, quant);
+---
+> 		this.rebuildDeepToBundle(bundle, false, nil, [this.fadeTime, this.quant, clock]);
+> 		bundle.schedSend(server, clock ? TempoClock.default, this.quant);
+227c240
+< 			this.rebuildDeepToBundle(bundle, false, nil, [fadeTime, quant, clock])
+---
+> 			this.rebuildDeepToBundle(bundle, false, nil, [fadeTime, this.quant, clock])
+235c248
+< 				this.rebuildDeepToBundle(bundle, true, nil, [fadeTime, quant, clock])
+---
+> 				this.rebuildDeepToBundle(bundle, true, nil, [fadeTime, this.quant, clock])
+239c252
+< 		if(server.serverRunning) { bundle.schedSend(server, clock ? TempoClock.default, quant) };
+---
+> 		if(server.serverRunning) { bundle.schedSend(server, clock ? TempoClock.default, this.quant) };
+400c413
+< 				bundle.schedSend(server, clock ? TempoClock.default, quant);
+---
+> 				bundle.schedSend(server, clock ? TempoClock.default, this.quant);
+519c532
+< 		bundle.schedSend(server, clock ? TempoClock.default, quant)
+---
+> 		bundle.schedSend(server, clock ? TempoClock.default, this.quant)
+860,861c873,874
+< 		var prevTimeArgs = [this.fadeTime, quant, clock];
+< 		timeArgs !? { this.fadeTime = timeArgs[0]; quant = timeArgs[1]; clock = timeArgs[2] };
+---
+> 		var prevTimeArgs = [this.fadeTime, this.quant, clock];
+> 		timeArgs !? { this.fadeTime = timeArgs[0]; this.quant = timeArgs[1]; clock = timeArgs[2] };
+875c888
+< 		timeArgs !? { this.fadeTime = prevTimeArgs[0]; quant = prevTimeArgs[1]; clock = prevTimeArgs[2] };
+---
+> 		timeArgs !? { this.fadeTime = prevTimeArgs[0]; this.quant = prevTimeArgs[1]; clock = prevTimeArgs[2] };
+887c900
+< 			c.sched(server.latency ? 0.01 + quant.nextTimeOnGrid(c) + this.fadeTime, { oldBus.free(true); nil });
+---
+> 			c.sched(server.latency ? 0.01 + this.quant.nextTimeOnGrid(c) + this.fadeTime, { oldBus.free(true); nil });

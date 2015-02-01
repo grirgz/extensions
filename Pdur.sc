@@ -1,5 +1,7 @@
 
 Pdur : FilterPattern {
+	// same as Pfindur but bugged, why I wrote this ????
+
 	var <>dur, <>tolerance;
 	*new { arg dur, pattern, tolerance = 0.001;
 		^super.new(pattern).dur_(dur).tolerance_(tolerance)
