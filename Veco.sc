@@ -38,10 +38,10 @@ Veco {
 		^path;
 	}
 
-	*open_project { arg path;
+	*open_project { arg path, activate;
 		this.init;
 		path = this.relpath_to_abspath(path);
-		~veco_project_manager.open_project(path);
+		~veco_project_manager.open_project(path, activate);
 	}
 
 	*open_main_project { arg path;
@@ -57,7 +57,7 @@ Veco {
 		};
 	}
 
-	*open_side_project { arg path;
+	*open_side_project { arg path, activate=false;
 		path = this.relpath_to_abspath(path);
 		if(projects[path].isNil) {
 			projects[path] = Environment.new;
@@ -65,8 +65,9 @@ Veco {
 			projects[path][\veco] = nil;
 		};
 		projects[path].use({
-			this.open_project(path);
+			this.open_project(path, activate);
 		});
+		^projects[path];
 	}
 
 	*close_side_project { arg path;
