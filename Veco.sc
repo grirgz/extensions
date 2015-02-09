@@ -297,6 +297,34 @@ BusDef {
 
 }
 
+GroupDef {
+	classvar <>groupdict;
+
+	*initClass {
+		groupdict = Dictionary.new;
+	}
+
+	*newGroup { arg target, addaction;
+		^Group.new(target, addaction)
+	}
+
+	*new { arg name, target, addaction='addToHead';
+		var group;
+		target = target ? Server.default;
+		if(groupdict[name].isNil or: { groupdict[name].isPlaying.not }) {
+			groupdict[name] = this.newGroup(target, addaction);
+			groupdict[name].register(true);
+		};
+		^groupdict[name]
+	}
+}
+
+ParGroupDef : GroupDef {
+	*newGroup { arg target, addaction;
+		^ParGroup.new(target, addaction)
+	}
+}
+
 
 Sdef {
 	//classvar storage;
@@ -339,7 +367,8 @@ Sdef {
 
 	}
 }
-//Veco.save('2.2').stepseq
+
+
 
 
 + NodeProxy {
