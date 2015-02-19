@@ -1,5 +1,9 @@
 
 Veco {
+	// there is two kind of project management:
+	// - project_slots which hold a dictionary slot_index -> project_env
+	// - projects which hold a dictionary path -> project_env
+
 	classvar <>fxgroup;
 	classvar <>projects;
 	classvar <>project_slots;
@@ -7,6 +11,8 @@ Veco {
 	classvar <>user_path;
 	classvar <>file_editor;
 	classvar <>save_hook; // used by shortcut_clip to load data in the virtual clip instead of the target one
+	classvar <>last_activated_project;
+	classvar <>previous_activated_project;
 
 	*initClass {
 		projects = Dictionary.new;
@@ -39,6 +45,7 @@ Veco {
 	}
 
 	*open_project { arg path, activate;
+		// open project in current environment
 		this.init;
 		path = this.relpath_to_abspath(path);
 		~veco_project_manager.open_project(path, activate);
@@ -50,10 +57,16 @@ Veco {
 	}
 
 	*activate_main_project { arg change_vim_path=true;
-		topEnvironment.push;
+		activate_project_by_env(topEnvironment, change_vim_path);
+	}
+
+	*activate_project_by_env { arg env, change_vim_path=true;
+		env.push;
 		~veco.clip.activate;
-		if(change_vim_path) {
-			"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
+		this.change_vim_path(~veco.project_path, change_vim_path);
+		if(env !== last_activated_project) {
+			previous_activated_project = last_activated_project;
+			last_activated_project = env;
 		};
 	}
 
@@ -80,18 +93,22 @@ Veco {
 	}
 
 	*activate_side_project { arg path, change_vim_path=true;
+		// activate project by path
 		path = this.relpath_to_abspath(path);
 		if(path == topEnvironment[\veco_project_path]) {
 			this.activate_main_project;
 		} {
 			if(projects[path].notNil) {
-				projects[path].push;
-				~veco.clip.activate;
-				if(change_vim_path) {
-					"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
-				};
+				this.activate_project_by_env(projects[path]);
 			};
 		}
+	}
+
+	*change_vim_path { arg path, do_it=true;
+		// FIXME: use a vim class
+		if(do_it == true) {
+			"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(path).unixCmd;
+		};
 	}
 
 	*switch_project_slot { arg num, change_vim_path=true;
@@ -100,13 +117,9 @@ Veco {
 		if(env.isNil) {
 			if(num == 0) {
 				// should not because already initialized
+				// FIXME: what if no main project yet ? bug
 				project_slots[num] = topEnvironment;
-				project_slots[num].push;
-				if(change_vim_path) {
-					"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
-				};
-				//~veco.clip.skip_first_time = true;
-				~veco.clip.activate;
+				this.activate_project_by_env(project_slots[num]);
 			} {
 				project_slots[num] = Environment.new;
 				project_slots[num].parent = topEnvironment;
@@ -115,16 +128,9 @@ Veco {
 				path = this.relpath_to_abspath("start");
 				this.open_project(path);
 			};
-			if(change_vim_path) {
-				"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
-			};
+			this.change_vim_path(~veco.project_path, change_vim_path);
 		} {
-			project_slots[num].push;
-			if(change_vim_path) {
-				"vim --servername scvim --remote-send '<Esc>:cd %<Enter>'".format(~veco.project_path).unixCmd;
-			};
-			//~veco.clip.skip_first_time = true;
-			~veco.clip.activate;
+			this.activate_project_by_env(project_slots[num]);
 		};
 	
 	}
@@ -276,6 +282,7 @@ BusDef {
 				};
 			};
 			bus = Bus.alloc(rate, Server.default, channels);
+			this.watchServer(Server.default);
 			all.put(name, bus);
 		};
 		^bus;
@@ -293,6 +300,14 @@ BusDef {
 	*freeAll {
 		all.do { _.free };	
 		all = IdentityDictionary.new;
+	}
+
+	*watchServer { |server|
+		if(NotificationCenter.registrationExists(server,\newAllocators,this).not,{
+			NotificationCenter.register(server,\newAllocators,this,{
+				this.freeAll;
+			});
+		});
 	}
 
 }
