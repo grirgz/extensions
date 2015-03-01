@@ -33,6 +33,11 @@ XArraySpec : Spec {
 		^super.newCopyArgs(array, default, size, isMonoSpec);
 	}
 
+
+	at { arg idx;
+		^array[idx];
+	}
+
 	map { arg val;
 		var nested = false;
 		var res;
