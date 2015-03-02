@@ -147,20 +147,20 @@ PresetDef {
 }
 
 + Pdef {
-	setBusMode { arg ... argnames;
-		var exclude = Set[\legato, \sustain, \dur, \stretch];
-		(argnames.asSet.difference(exclude)).do { arg argname;
-			var bus;
-			var oldval;
-			oldval = this.get(argname);
-			if(oldval.class == Float) {
-				BusDef(\pdef+++ this.key +++argname, \control);
-				bus = BusDef(\pdef+++ this.key +++argname);
-				bus.set(oldval);
-				this.set(argname, bus.asMap)
-			}
-		}
-	}
+	//setBusMode { arg ... argnames;
+	//	var exclude = Set[\legato, \sustain, \dur, \stretch];
+	//	(argnames.asSet.difference(exclude)).do { arg argname;
+	//		var bus;
+	//		var oldval;
+	//		oldval = this.get(argname);
+	//		if(oldval.class == Float) {
+	//			BusDef(\pdef+++ this.key +++argname, \control);
+	//			bus = BusDef(\pdef+++ this.key +++argname);
+	//			bus.set(oldval);
+	//			this.set(argname, bus.asMap)
+	//		}
+	//	}
+	//}
 
 	asRack {
 		^Rack.newFrom(this)

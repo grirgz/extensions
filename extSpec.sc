@@ -33,6 +33,9 @@ XArraySpec : Spec {
 		^super.newCopyArgs(array, default, size, isMonoSpec);
 	}
 
+	numChannels {
+		^size
+	}
 
 	at { arg idx;
 		^array[idx];
