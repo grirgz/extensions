@@ -134,7 +134,7 @@ XEnvSpec : Spec {
 		^super.newCopyArgs(levels, times, curves, default, size, isMonoSpec)
 	}
 
-	map { arg val;
+	map { arg val, ignoreCurves=true;
 		var levels, times, curves;
 		var nested = false, res;
 		if(val.isSequenceableCollection) {
@@ -149,23 +149,27 @@ XEnvSpec : Spec {
 			this.times[x].map(subval);
 		});
 
-		switch(val.curves.class,
-			Symbol, {
-				curves = val.curves;
-			},
-			Float, {
-				curves = [val.curves];
-				curves = curves.collect({ arg subval, x;
-					this.curves[x].map(subval);
-				});
-			}, 
-			{
-				curves = val.curves.collect({ arg subval, x;
-					this.curves[x].map(subval);
-				});
-			}
-		
-		);
+		if(ignoreCurves) {
+			curves = val.curves;
+		} {
+			switch(val.curves.class,
+				Symbol, {
+					curves = val.curves;
+				},
+				Float, {
+					curves = [val.curves];
+					curves = curves.collect({ arg subval, x;
+						this.curves[x].map(subval);
+					});
+				}, 
+				{
+					curves = val.curves.collect({ arg subval, x;
+						this.curves[x].map(subval);
+					});
+				}
+			
+			);
+		};
 
 		res = Env(levels, times, curves, val.releaseNode, val.loopNode);
 
@@ -177,7 +181,7 @@ XEnvSpec : Spec {
 		
 	}
 
-	unmap { arg val;
+	unmap { arg val, ignoreCurves=true;
 		var levels, times, curves;
 		var nested = false;
 		var res;
@@ -193,23 +197,27 @@ XEnvSpec : Spec {
 			this.times[x].unmap(subval);
 		});
 
-		switch(val.curves.class,
-			Symbol, {
-				curves = val.curves;
-			},
-			Float, {
-				curves = [val.curves];
-				curves = curves.collect({ arg subval, x;
-					this.curves[x].unmap(subval);
-				});
-			}, 
-			{
-				curves = val.curves.collect({ arg subval, x;
-					this.curves[x].unmap(subval);
-				});
-			}
-		
-		);
+		if(ignoreCurves) {
+			curves = val.curves;
+		} {
+			switch(val.curves.class,
+				Symbol, {
+					curves = val.curves;
+				},
+				Float, {
+					curves = [val.curves];
+					curves = curves.collect({ arg subval, x;
+						this.curves[x].unmap(subval);
+					});
+				}, 
+				{
+					curves = val.curves.collect({ arg subval, x;
+						this.curves[x].unmap(subval);
+					});
+				}
+			
+			);
+		};
 
 		res = Env(levels, times, curves, val.releaseNode, val.loopNode);
 
