@@ -90,6 +90,11 @@ XEnvSpec : Spec {
 	*new { arg levels, times, curves, default;
 		var size;
 		var isMonoSpec;
+
+		if(curves.isNil) {
+			// FIXME: provide better default spec
+			curves = ControlSpec(-9,9,\lin,0,0);
+		};
 		size = levels.size;
 		times = times.asArray.wrapExtend(size - 1);
 		curves = curves.asArray.wrapExtend(size - 1);
@@ -97,6 +102,8 @@ XEnvSpec : Spec {
 		times = times.collect(_.asSpec);
 		levels = levels.collect(_.asSpec);
 		curves = curves.collect(_.asSpec);
+
+		curves.debug("XEnvSpec:curves");
 
 		if(
 			levels.any { arg val;
