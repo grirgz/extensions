@@ -65,7 +65,7 @@ MIDIBoard {
 		};
 	}
 
-	*map { arg ... args;
+	*map_OLD { arg ... args;
 		if(args[0].isSequenceableCollection) {
 			args[0].do { arg val;
 				var key;
@@ -95,10 +95,23 @@ MIDIBoard {
 		}
 	}
 
-	*unmap { arg ... args;
+	*map { arg ...args;
+		var ar = args[1..];
+		if(ar[0].class == Function) {
+			MIDIMap(args[0], ar[0]);
+		} {
+			MIDIMap(args[0], ar);
+		};
+	}
+
+	*unmap_OLD { arg ... args;
 		var key;
 		key = args.removeAt(0);
 		controls[key].unmap(*args);
+	}
+
+	*unmap { arg ...args;
+		MIDIMap.free(*args);
 	}
 }
 
