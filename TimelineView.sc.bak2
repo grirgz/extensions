@@ -38,50 +38,22 @@ TimelineView : SCViewHolder {
 	var refresh 			= true;	// false during 'reconstruct'
 	var refreshDeferred	= false;
 	var lazyRefreshFunc;
-	var refreshEnabled = true;
-
-	var action;
-	var makeUpdater;
-	var model;
-	var controller;
-
 	
 	*new { arg w, bounds; 
 		^super.new.initParaSpace(w, bounds);
-	}
-
-	*newFromEventList { arg eventlist, w, bounds;
-		^super.new.initParaSpace(w, bounds).mapEventList(eventlist);
 	}
 
 	bounds { 
 		^this.view.bounds
 	}
 
-	action {
-		action.();
-	}
-
-	action_ { arg fun;
-		action = fun;
-	}
-
-	makeUpdater {
-		if(controller.notNil) {controller.remove};
-		controller = SimpleController(model).put(\refresh, {
-			"TimelineView get a refresh signal!".debug;
-			this.refreshEventList;
-			this.refresh;
-		})
-	}
-
 	normRectToPixelRect { arg rect;
 		var bounds = this.bounds;
 		^Rect(
 			rect.origin.x * bounds.extent.x / viewport.extent.x - ( viewport.origin.x * bounds.extent.x ), 
-			( 1-rect.origin.y ) * bounds.extent.y / viewport.extent.y - ( viewport.origin.y * bounds.extent.y ),
+			rect.origin.y * bounds.extent.y / viewport.extent.y - ( viewport.origin.y * bounds.extent.y ),
 			rect.width * bounds.extent.x/ viewport.extent.x,
-			(0 - (rect.height * bounds.extent.y) ) / viewport.extent.y,
+			rect.height * bounds.extent.y / viewport.extent.y,
 		);
 	}
 
@@ -89,32 +61,10 @@ TimelineView : SCViewHolder {
 		var bounds = this.bounds;
 		^Rect(
 			rect.origin.x + ( viewport.origin.x * bounds.extent.x ) / bounds.extent.x * viewport.extent.x,
-			1-(rect.origin.y + ( viewport.origin.y * bounds.extent.y ) / bounds.extent.y * viewport.extent.y),
+			rect.origin.y + ( viewport.origin.y * bounds.extent.y ) / bounds.extent.y * viewport.extent.y,
 			rect.width / bounds.extent.x * viewport.extent.x,
 			rect.height / bounds.extent.y * viewport.extent.y,
 		);
-	}
-
-	gridRectToNormRect { arg rect;
-		^Rect.fromPoints(
-			this.gridPointToNormPoint(rect.origin).debug("gridRectToNormRect: origin"),
-			this.gridPointToNormPoint(rect.rightBottom).debug("gridRectToNormRect: rb"),
-		);
-	}
-
-	normRectToGridRect { arg rect;
-		^Rect.fromPoints(
-			this.normPointToGridPoint(rect.origin),
-			this.normPointToGridPoint(rect.rightBottom),
-		);
-	}
-
-	gridRectToPixelRect { arg rect;
-		^this.normRectToPixelRect(this.gridRectToNormRect(rect.debug("gridRectToPixelRect: rect")));
-	}
-
-	pixelRectToGridRect { arg rect;
-		^this.normRectToPixelRect(this.gridRectToNormRect(rect));
 	}
 
 	normPointToPixelPoint { arg point;
@@ -133,22 +83,20 @@ TimelineView : SCViewHolder {
 		^(point * areasize)
 	}
 
-	pixelPointToGridPoint { arg point;
-		^this.normPointToGridPoint(this.pixelPointToNormPoint(point))
-	}
-
 	gridPointToPixelPoint { arg point;
 		^this.normPointToPixelPoint(this.gridPointToNormPoint(point))
 	}
 
 
 	selectNode { arg node;
-		node.selectNode;
+		node.refloc = node.nodeloc;
+		node.outlinecolor = outlinecolor;
 		selNodes.add(node);
 	}
 
 	deselectNode { arg node;
-		node.deselectNode;
+		node.refloc = node.nodeloc;
+		node.outlinecolor = Color.black;
 		selNodes.remove(node);
 	}
 	
@@ -162,14 +110,7 @@ TimelineView : SCViewHolder {
 		//		Rect(10, 250, bounds.left + bounds.width + 40, bounds.top + bounds.height+30));
 		//	win.front;
 		//});
-		paraNodes.debug("initParaSpace");
 
-		this.makeUpdater;
-		action = {
-			model.reorder;
-		};
-
-		selNodes = Set.new;
 		//mouseTracker = UserView.new(win, Rect(bounds.left, bounds.top, bounds.width, bounds.height));
 		quant = Point(1/8,1);
 		viewport = viewport ?? Rect(0,0,1,1);
@@ -212,13 +153,11 @@ TimelineView : SCViewHolder {
 
 				var bounds = this.bounds;
 				var npos;
-				var gpos;
 				var nquant = this.gridPointToNormPoint(quant);
 				npos = this.pixelPointToNormPoint(Point(px,py));
-				gpos = this.pixelPointToGridPoint(Point(px,py));
 				mouseDownAction.(me, px, py, mod, buttonNumber, clickCount);
 				[px, py, npos].debug("mouseDownAction_ npos");
-				chosennode = this.findNode(gpos.x, gpos.y);
+				chosennode = this.findNode(npos.x, npos.y);
 
 				case
 					{ mod.isCtrl  } {
@@ -228,18 +167,14 @@ TimelineView : SCViewHolder {
 						var newpos;
 						nodesize = this.gridPointToNormPoint(nodesize);
 						if(enableQuant) {
-							newpos = gpos.round(quant); 
+							newpos = npos.round(nquant); 
 						} {
-							newpos = gpos; 
+							newpos = npos; 
 						};
-						model.addEvent((absTime: newpos.x, midinote: newpos.y, sustain:nodesize.x));
-						model.reorder;
-						//this.createNode1(newpos.x, newpos.y, nodesize, fillcolor);
+						this.createNode1(newpos.x, newpos.y, nodesize, fillcolor);
 						refPoint = newpos; // var used here for reference in trackfunc
 						refWidth = nodesize.x;
-						//chosennode = paraNodes.last;
-						chosennode = this.findNode(newpos.x, newpos.y);
-						chosennode.debug("mouseDownAction: chosennode!");
+						chosennode = paraNodes.last;
 						//paraNodes.add(TimelineViewNode.new(x,y, fillcolor, bounds, nodeCount, nodeSize));
 						//nodeCount = nodeCount + 1;
 						//paraNodes.do({arg node; // deselect all nodes
@@ -251,13 +186,13 @@ TimelineView : SCViewHolder {
 					}
 					{ mod.isShift } {
 						if(chosennode !=nil) { // a node is selected
-							refPoint = gpos; // var used here for reference in trackfunc
+							refPoint = npos; // var used here for reference in trackfunc
 							refWidth = chosennode.width;
 						}
 					}
 					{
 						if(chosennode !=nil, { // a node is selected
-							refPoint = gpos; // var used here for reference in trackfunc
+							refPoint = npos; // var used here for reference in trackfunc
 							
 							if(conFlag == true, { // if selected and "c" then connection is possible
 								paraNodes.do({arg node, i; 
@@ -305,15 +240,14 @@ TimelineView : SCViewHolder {
 				var bounds = this.bounds;
 				var x,y;
 				var npos = this.pixelPointToNormPoint(Point(px,py));
-				var gpos = this.pixelPointToGridPoint(Point(px,py));
 				var nquant = this.gridPointToNormPoint(quant);
 				var newpos;
 
 				newpos = { arg node;
 					var res;
-					res = node.refloc + (gpos - refPoint);
+					res = node.refloc + (npos - refPoint);
 					if ( enableQuant ) {
-						res = res.round(quant);
+						res = res.round(nquant);
 					};
 					res;
 				};
@@ -325,10 +259,10 @@ TimelineView : SCViewHolder {
 							// resize mode
 							if(chosennode != nil) { // a node is selected
 								var newwidth;
-								newwidth = refWidth + (gpos.x - refPoint.x);
+								newwidth = refWidth + (npos.x - refPoint.x);
 								if( enableQuant ) {
-									newwidth = newwidth.round(quant.x);
-									newwidth = newwidth.max(quant.x);
+									newwidth = newwidth.round(nquant.x);
+									newwidth = newwidth.max(nquant.x);
 								} {
 									newwidth = newwidth.max(0);
 								};
@@ -392,13 +326,11 @@ TimelineView : SCViewHolder {
 					this.refresh;
 				},{ // no node is selected
 					// find which nodees are selected
-					selNodes = Set.new;
+					selNodes = List.new;
 					paraNodes.do({arg node;
 						var rect;
-						var grect;
 						rect = Rect.fromPoints(startSelPoint, endSelPoint);
-						grect = this.normRectToGridRect(rect);
-						if(grect.containsPoint(node.nodeloc)) {
+						if(rect.containsPoint(node.nodeloc)) {
 							this.selectNode(node);
 						};
 					});
@@ -445,25 +377,45 @@ TimelineView : SCViewHolder {
 					pen.line(this.normPointToPixelPoint(paraNodes[conn[0]].nodeloc)+0.5, this.normPointToPixelPoint(paraNodes[conn[1]].nodeloc)+0.5);
 				});
 				pen.stroke;
-
-				// end line
-
-				pen.line(
-					this.gridPointToPixelPoint(Point(model.playingDur, areasize.y)),
-					this.gridPointToPixelPoint(Point(model.playingDur, 0))
-				);
-				pen.stroke;
 				
 				// the nodes or circles
 
 				debug("start drawing nodes");
 				bounds.debug("bounds");
-
 				paraNodes.do({arg node;
-					[node, node.spritenum].debug("drawing node");
-					node.draw;
-				});
+					if(shape == "rect", {
+						var rect;
+						var pos;
+						pen.color = node.color;
+						pos = node.nodeloc;
+						//[node.nodeloc.x, node.nodeloc.y].debug("nodeloc");
+						//[pos.x , bounds.extent.x , viewport.extent.x , areasize.x].debug("x");
+						//[pos.y , bounds.extent.y , viewport.extent.y , areasize.y].debug("y");
+						//rect = Rect(
+						//	pos.x * bounds.extent.x / viewport.extent.x - ( viewport.origin.x * bounds.extent.x ), 
+						//	pos.y * bounds.extent.y / viewport.extent.y - ( viewport.origin.y * bounds.extent.y ),
+						//	node.size * bounds.extent.x,
+						//	1 * bounds.extent.y / areasize.y / viewport.extent.y,
+						//);
+						rect = this.normRectToPixelRect(node.rect);
+						//[pos, bounds, viewport, areasize, node.rect, rect].debug("pos, bounds, viewport, areasize, node.rect, rect");
+						//[node.rect, rect].debug("pos, bounds, viewport, areasize, node.rect, rect");
+						pen.fillRect(rect);
+						pen.color = node.outlinecolor;
+						pen.strokeRect(rect);
+					}, {
+						pen.color = node.color;
+						pen.fillOval(node.rect);
+						pen.color = node.outlinecolor;
+						pen.strokeOval(node.rect);
+					});
+					node.string.drawInRect(
+						//Rect(node.rect.left+node.size+5, node.rect.top-3, 80, 16),   
+						Rect(node.rect.left+5, node.rect.top+3, 120, node.rect.height),   
+						font, fontColor
+					);
 
+				});
 				debug("stop drawing nodes");
 				pen.stroke;		
 				
@@ -498,8 +450,10 @@ TimelineView : SCViewHolder {
 				// deleting nodes
 
 				if(unicode == 127, {
-					selNodes.copy.do({arg node; 
-						this.deleteNode(node)
+					selNodes.do({arg box; 
+						paraNodes.copy.do({arg node, i; 
+							if(box === node, {this.deleteNode(node)});
+						})
 					});
 				});
 
@@ -529,9 +483,6 @@ TimelineView : SCViewHolder {
 	}
 
 	clearSpace {
-		paraNodes.do { arg node;
-			node.free;
-		};
 		paraNodes = List.new;
 		connections = List.new;
 		nodeCount = 0;
@@ -559,47 +510,6 @@ TimelineView : SCViewHolder {
 		paraNodes.add(node);
 		createNodeHook.(node, nodeidx);
 		if(refresh == true, {this.refresh});
-	}
-
-	addEvent { arg event;
-		var node;
-		switch(event[\type],
-			\start, {
-				"start".debug;
-			},
-			\end, {
-				"end".debug;
-			},
-			// else
-			{
-				node = TimelineViewEventNode.new(this, nodeCount, event);
-				nodeCount = nodeCount + 1;
-				paraNodes.add(node);
-				createNodeHook.(node, nodeCount);
-				if(refreshEnabled) { this.refresh };
-			}
-		)
-	}
-
-	refreshEventList {
-		this.clearSpace;
-		model.do { arg event;
-			this.addEvent(event)
-		};
-	}
-
-	mapEventList { arg eventlist;
-		paraNodes.debug("mapEventList");
-		this.clearSpace;
-		paraNodes.debug("mapEventList2");
-		model = eventlist;
-		eventlist.do { arg event;
-			this.addEvent(event)
-		};
-
-		this.makeUpdater;
-		
-		[areasize, viewport, paraNodes].debug("mapEventList3");
 	}
 		
 	createConnection {arg node1, node2, refresh=true;
@@ -643,8 +553,6 @@ TimelineView : SCViewHolder {
 		});
 		deleteNodeHook.(node, nodenr);
 		if(paraNodes.size > 0, {paraNodes.remove(node)});
-		node.free;
-		model.removeEvent(node.model);
 		if(refresh == true, {this.refresh});
 	}
 	
@@ -966,134 +874,4 @@ TimelineViewNode {
 	getColor {
 		^color;
 	}
-}
-
-TimelineViewEventNode {
-	var <spritenum;
-	var <model;
-	var absTime;
-	var xpos;
-	var refreshAction;
-	var timeKey = \absTime;
-	var posyKey = \midinote;
-	var lenKey = \sustain;
-	var <>origin;
-	var <>extent;
-	var <>color, <>outlineColor;
-	var parent;
-	var action;
-	var refresh;
-	var controller;
-
-	var <>refloc;
-
-	*new { arg parent, nodeidx, event;
-		^super.new.init(parent, nodeidx, event);
-	}
-
-	init { arg xparent, nodeidx, event;
-		parent = xparent;
-		spritenum = nodeidx;
-		model = event;
-
-		[spritenum, model].debug("CREATE EVENT NODE !");
-
-		action = {
-			model[timeKey] = origin.x;
-			model[posyKey] = origin.y;
-			model[lenKey] = extent.x;
-		};
-
-		refresh = {
-			origin = Point(model[timeKey], model[posyKey]);
-			color = Color.green;
-			outlineColor = Color.black;
-			extent = Point(model.use { currentEnvironment[lenKey].value(model) }, 1); // * tempo ?
-			[spritenum, origin, extent, color].debug("refresh");
-		};
-
-		this.makeUpdater;
-		this.refresh;
-		this.action;
-	}
-
-	rect {
-		^Rect(origin.x, origin.y, extent.x, extent.y)
-	}
-
-	width {
-		^extent.x;
-	}
-
-	width_ { arg val;
-		extent.x = val;
-		this.action;
-	}
-
-	nodeloc {
-		^origin
-	}
-
-	nodeloc_ { arg val;
-		origin = val;
-		this.action;
-		parent.action;
-	}
-
-	setLoc_ { arg val;
-		origin = val;
-		this.action;
-		parent.action;
-	}
-
-	action {
-		action.();
-	}
-
-	action_ { arg fun;
-		action = fun;
-	}
-
-	makeUpdater {
-		if(controller.notNil) {controller.remove};
-		controller = SimpleController(model).put(\refresh, {
-			this.refresh;
-		})
-	}
-
-	refresh {
-		refresh.()
-	}
-
-	refresh_ { arg fun;
-		refresh = fun;
-	}
-
-	draw {
-		var rect;
-		var pos;
-		Pen.color = this.color;
-		pos = this.origin;
-		rect = parent.gridRectToPixelRect(this.rect);
-		[spritenum, rect].debug("draw");
-		Pen.fillRect(rect);
-		Pen.color = this.outlineColor;
-		Pen.strokeRect(rect);
-		//Pen.stroke;
-	}
-
-	selectNode {
-		this.refloc = this.nodeloc;
-		outlineColor = Color.red;
-	}
-
-	deselectNode {
-		outlineColor = Color.black;
-	}
-
-	free {
-		if(controller.notNil) {controller.remove};
-	}
-
-
 }
