@@ -1,4 +1,4 @@
-// (c) 2006-2010, Thor Magnusson - www.ixi-audio.net
+// based on Thor Magnusson code - www.ixi-audio.net
 // GNU licence - google it.
 
 // TODO
@@ -8,6 +8,8 @@
 
 
 TimelineView : SCViewHolder {
+
+	var <>mygrid; // debug;
 
 	var <>viewport;
 	var <>areasize;
@@ -421,7 +423,10 @@ TimelineView : SCViewHolder {
 
 				// grid
 
-				grid = DrawGrid(Rect(0,0,bounds.width,bounds.height), 
+				mygrid.debug("===============mygrid");
+				grid = mygrid.(bounds, areasize, viewport);
+				grid.debug("grid");
+				grid = grid ? DrawGrid(Rect(0,0,bounds.width,bounds.height), 
 					ControlSpec(
 							( areasize.x * viewport.origin.x ), 
 							areasize.x * viewport.width + ( areasize.x * viewport.origin.x ), 
@@ -1096,4 +1101,113 @@ TimelineViewEventNode {
 	}
 
 
+}
+
+
+
+DenseGridLines : GridLines {
+	var <>density = 1;
+	var <>labelDensity = 1;
+	
+	getParams { |valueMin,valueMax,pixelMin,pixelMax,numTicks|
+		var lines,p,pixRange;
+		var nfrac,d,graphmin,graphmax,range;
+		pixRange = pixelMax - pixelMin;
+		if(numTicks.isNil,{
+			numTicks = (pixRange / 64 * density);
+			numTicks = numTicks.max(3).round(1);
+		});
+		# graphmin,graphmax,nfrac,d = this.ideals(valueMin,valueMax,numTicks);
+		lines = [];
+		if(d != inf,{
+			forBy(graphmin,graphmax + (0.5*d),d,{ arg tick;
+				if(tick.inclusivelyBetween(valueMin,valueMax),{
+					lines = lines.add( tick );
+				})
+			});
+		});
+		p = ();
+		p['lines'] = lines;
+		if(pixRange / numTicks > (9 / labelDensity)) {
+			p['labels'] = lines.collect({ arg val; [val, this.formatLabel(val,nfrac) ] });
+		};
+		^p
+	}
+}
+
+MidinoteGridLines : GridLines {
+	
+	var <>density = 1;
+	var <>labelDensity = 1;
+	
+	//getParams { |valueMin,valueMax,pixelMin,pixelMax,numTicks|
+	//	var lines,p,pixRange;
+	//	var nfrac,d,graphmin,graphmax,range;
+
+	//	var count = valueMax - valueMin;
+	//	var pixelCount = pixelMax - pixelMin;
+
+	//	if(pixelCount < 200) {
+	//		count = count / 2;
+	//	};
+
+	//	count.collect {
+	//		pixelMin
+
+	//	}
+
+	//	pixRange = pixelMax - pixelMin;
+	//	if(numTicks.isNil,{
+	//		numTicks = (pixRange / 64 * density);
+	//		numTicks = numTicks.max(3).round(1);
+	//	});
+	//	# graphmin,graphmax,nfrac,d = this.ideals(valueMin,valueMax,numTicks);
+	//	lines = [];
+	//	if(d != inf,{
+	//		forBy(graphmin,graphmax + (0.5*d),d,{ arg tick;
+	//			if(tick.inclusivelyBetween(valueMin,valueMax),{
+	//				lines = lines.add( tick );
+	//			})
+	//		});
+	//	});
+	//	p = ();
+	//	p['lines'] = lines;
+	//	if(pixRange / numTicks > (9 / labelDensity)) {
+	//		p['labels'] = lines.collect({ arg val; [val, this.formatLabel(val,nfrac) ] });
+	//	};
+	//	^p
+	//}
+
+	getParams { |valueMin,valueMax,pixelMin,pixelMax,numTicks|
+		var lines,p,pixRange;
+		var nfrac,d,graphmin,graphmax,range;
+		var count = 127;
+		var pixelCount = pixelMax - pixelMin;
+		pixRange = pixelMax - pixelMin;
+		if(numTicks.isNil,{
+			numTicks = 127;
+			//if(pixelCount < 200) {
+			//	numTicks = ( numTicks / 2 ).round(1);
+			//};
+		});
+		# graphmin,graphmax,nfrac,d = this.ideals(valueMin,valueMax,numTicks);
+		d= 1;
+		if(pixelCount < 200) {
+			d = 2
+		};
+		lines = [];
+		if(d != inf,{
+			forBy(graphmin,graphmax + (0.5*d),d,{ arg tick;
+				if(tick.inclusivelyBetween(valueMin,valueMax),{
+					lines = lines.add( tick );
+				})
+			});
+		});
+		p = ();
+		p['lines'] = lines;
+		if(pixRange / numTicks > 9) {
+			p['labels'] = lines.collect({ arg val; [val, this.formatLabel(val,nfrac) ] });
+		};
+		^p.debug("---------------P")
+	}
 }
