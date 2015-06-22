@@ -56,104 +56,6 @@ TimelineView : SCViewHolder {
 		^super.new.initParaSpace(w, bounds).mapEventList(eventlist);
 	}
 
-	bounds { 
-		^this.view.bounds
-	}
-
-	action {
-		action.();
-	}
-
-	action_ { arg fun;
-		action = fun;
-	}
-
-	makeUpdater {
-		if(controller.notNil) {controller.remove};
-		controller = SimpleController(model).put(\refresh, {
-			"TimelineView get a refresh signal!".debug;
-			this.refreshEventList;
-			this.refresh;
-		})
-	}
-
-	normRectToPixelRect { arg rect;
-		var bounds = this.bounds;
-		^Rect(
-			rect.origin.x * bounds.extent.x / viewport.extent.x - ( viewport.origin.x * bounds.extent.x ), 
-			( 1-rect.origin.y ) * bounds.extent.y / viewport.extent.y - ( viewport.origin.y * bounds.extent.y ),
-			rect.width * bounds.extent.x/ viewport.extent.x,
-			(0 - (rect.height * bounds.extent.y) ) / viewport.extent.y,
-		);
-	}
-
-	pixelRectToNormRect { arg rect;
-		var bounds = this.bounds;
-		^Rect(
-			rect.origin.x + ( viewport.origin.x * bounds.extent.x ) / bounds.extent.x * viewport.extent.x,
-			1-(rect.origin.y + ( viewport.origin.y * bounds.extent.y ) / bounds.extent.y * viewport.extent.y),
-			rect.width / bounds.extent.x * viewport.extent.x,
-			rect.height / bounds.extent.y * viewport.extent.y,
-		);
-	}
-
-	gridRectToNormRect { arg rect;
-		^Rect.fromPoints(
-			this.gridPointToNormPoint(rect.origin).debug("gridRectToNormRect: origin"),
-			this.gridPointToNormPoint(rect.rightBottom).debug("gridRectToNormRect: rb"),
-		);
-	}
-
-	normRectToGridRect { arg rect;
-		^Rect.fromPoints(
-			this.normPointToGridPoint(rect.origin),
-			this.normPointToGridPoint(rect.rightBottom),
-		);
-	}
-
-	gridRectToPixelRect { arg rect;
-		^this.normRectToPixelRect(this.gridRectToNormRect(rect.debug("gridRectToPixelRect: rect")));
-	}
-
-	pixelRectToGridRect { arg rect;
-		^this.normRectToPixelRect(this.gridRectToNormRect(rect));
-	}
-
-	normPointToPixelPoint { arg point;
-		^this.normRectToPixelRect(Rect.fromPoints(point, point+Point(0,0))).origin;
-	}
-
-	pixelPointToNormPoint { arg point;
-		^this.pixelRectToNormRect(Rect.fromPoints(point, point+Point(0,0))).origin;
-	}
-
-	gridPointToNormPoint { arg point;
-		^(point / areasize)
-	}
-
-	normPointToGridPoint { arg point;
-		^(point * areasize)
-	}
-
-	pixelPointToGridPoint { arg point;
-		^this.normPointToGridPoint(this.pixelPointToNormPoint(point))
-	}
-
-	gridPointToPixelPoint { arg point;
-		^this.normPointToPixelPoint(this.gridPointToNormPoint(point))
-	}
-
-
-	selectNode { arg node;
-		node.selectNode;
-		selNodes.add(node);
-	}
-
-	deselectNode { arg node;
-		node.deselectNode;
-		selNodes.remove(node);
-	}
-	
 	initParaSpace { arg w, argbounds;
 		var a, b, rect, relX, relY, pen;
 		//bounds = argbounds ? Rect(20, 20, 400, 200);
@@ -437,6 +339,7 @@ TimelineView : SCViewHolder {
 					\midinote.asSpec.grid
 				);
 				grid.draw;
+
 				// explicit grid
 
 				areasize.y.do { arg py;
@@ -461,16 +364,7 @@ TimelineView : SCViewHolder {
 				
 				// the nodes or circles
 
-				debug("start drawing nodes");
-				bounds.debug("bounds");
-
-				paraNodes.do({arg node;
-					[node, node.spritenum].debug("drawing node");
-					node.draw;
-				});
-
-				debug("stop drawing nodes");
-				pen.stroke;		
+				this.drawNodes;
 				
 				// the selection node
 
@@ -533,6 +427,120 @@ TimelineView : SCViewHolder {
 			});
 	}
 
+	drawNodes {
+
+		debug("start drawing nodes");
+
+		paraNodes.do({arg node;
+			[node, node.spritenum].debug("drawing node");
+			node.draw;
+		});
+
+		debug("stop drawing nodes");
+		Pen.stroke;		
+	}
+
+	bounds { 
+		^this.view.bounds
+	}
+
+	action {
+		action.();
+	}
+
+	action_ { arg fun;
+		action = fun;
+	}
+
+	makeUpdater {
+		if(controller.notNil) {controller.remove};
+		controller = SimpleController(model).put(\refresh, {
+			"TimelineView get a refresh signal!".debug;
+			this.refreshEventList;
+			this.refresh;
+		})
+	}
+
+	///////////////// coordinates conversion
+
+	normRectToPixelRect { arg rect;
+		var bounds = this.bounds;
+		^Rect(
+			rect.origin.x * bounds.extent.x / viewport.extent.x - ( viewport.origin.x * bounds.extent.x ), 
+			( 1-rect.origin.y ) * bounds.extent.y / viewport.extent.y - ( viewport.origin.y * bounds.extent.y ),
+			rect.width * bounds.extent.x/ viewport.extent.x,
+			(0 - (rect.height * bounds.extent.y) ) / viewport.extent.y,
+		);
+	}
+
+	pixelRectToNormRect { arg rect;
+		var bounds = this.bounds;
+		^Rect(
+			rect.origin.x + ( viewport.origin.x * bounds.extent.x ) / bounds.extent.x * viewport.extent.x,
+			1-(rect.origin.y + ( viewport.origin.y * bounds.extent.y ) / bounds.extent.y * viewport.extent.y),
+			rect.width / bounds.extent.x * viewport.extent.x,
+			rect.height / bounds.extent.y * viewport.extent.y,
+		);
+	}
+
+	gridRectToNormRect { arg rect;
+		^Rect.fromPoints(
+			this.gridPointToNormPoint(rect.origin).debug("gridRectToNormRect: origin"),
+			this.gridPointToNormPoint(rect.rightBottom).debug("gridRectToNormRect: rb"),
+		);
+	}
+
+	normRectToGridRect { arg rect;
+		^Rect.fromPoints(
+			this.normPointToGridPoint(rect.origin),
+			this.normPointToGridPoint(rect.rightBottom),
+		);
+	}
+
+	gridRectToPixelRect { arg rect;
+		^this.normRectToPixelRect(this.gridRectToNormRect(rect.debug("gridRectToPixelRect: rect")));
+	}
+
+	pixelRectToGridRect { arg rect;
+		^this.normRectToGridRect(this.pixelRectToNormRect(rect));
+	}
+
+	normPointToPixelPoint { arg point;
+		^this.normRectToPixelRect(Rect.fromPoints(point, point+Point(0,0))).origin;
+	}
+
+	pixelPointToNormPoint { arg point;
+		^this.pixelRectToNormRect(Rect.fromPoints(point, point+Point(0,0))).origin;
+	}
+
+	gridPointToNormPoint { arg point;
+		^(point / areasize)
+	}
+
+	normPointToGridPoint { arg point;
+		^(point * areasize)
+	}
+
+	pixelPointToGridPoint { arg point;
+		^this.normPointToGridPoint(this.pixelPointToNormPoint(point))
+	}
+
+	gridPointToPixelPoint { arg point;
+		^this.normPointToPixelPoint(this.gridPointToNormPoint(point))
+	}
+
+	///////////////// 
+
+	selectNode { arg node;
+		node.selectNode;
+		selNodes.add(node);
+	}
+
+	deselectNode { arg node;
+		node.deselectNode;
+		selNodes.remove(node);
+	}
+	
 	clearSpace {
 		paraNodes.do { arg node;
 			node.free;
@@ -566,6 +574,10 @@ TimelineView : SCViewHolder {
 		if(refresh == true, {this.refresh});
 	}
 
+	nodeClass {
+		^TimelineViewEventNode
+	}
+
 	addEvent { arg event;
 		var node;
 		switch(event[\type],
@@ -577,7 +589,7 @@ TimelineView : SCViewHolder {
 			},
 			// else
 			{
-				node = TimelineViewEventNode.new(this, nodeCount, event);
+				node = this.nodeClass.new(this, nodeCount, event);
 				nodeCount = nodeCount + 1;
 				paraNodes.add(node);
 				createNodeHook.(node, nodeCount);
@@ -654,17 +666,17 @@ TimelineView : SCViewHolder {
 	}
 	
 	setNodeLoc_ {arg index, argX, argY, refresh=true;
-//		var x, y;
-//		x = argX+bounds.left;
-//		y = argY+bounds.top;
+		//var x, y;
+		//x = argX+bounds.left;
+		//y = argY+bounds.top;
 		paraNodes[index].setLoc_(Point(argX+0.5, argY+0.5));
 		if(refresh == true, {this.refresh});
 	}
 	
 	setNodeLocAction_ {arg index, argX, argY, action, refresh=true;
-//		var x, y;
-//		x = argX+bounds.left;
-//		y = argY+bounds.top;
+		//var x, y;
+		//x = argX+bounds.left;
+		//y = argY+bounds.top;
 		paraNodes[index].setLoc_(Point(argX, argY));
 		switch (action)
 			{\down} 	{downAction.value(paraNodes[index])}
@@ -861,7 +873,10 @@ TimelineView : SCViewHolder {
 	// local function
 	findNode {arg x, y;
 		paraNodes.do({arg node; 
-			if(node.rect.containsPoint(Point.new(x,y)), {
+			var point = Point.new(x,y);
+			[node.rect, point].debug("findNode");
+			if(node.rect.containsPoint(point), {
+				[node.rect, point].debug("findNode: found!!");
 				^node;
 			});
 		});
@@ -1099,10 +1114,89 @@ TimelineViewEventNode {
 	free {
 		if(controller.notNil) {controller.remove};
 	}
-
-
 }
 
+////////////////////////////////
+
+TimelineEnvView : TimelineView {
+	nodeClass {
+		^TimelineEnvViewNode
+	}
+}
+
+TimelineEnvViewNode : TimelineViewEventNode {
+	var radius = 15;
+
+	init { arg xparent, nodeidx, event;
+		parent = xparent;
+		spritenum = nodeidx;
+		model = event;
+
+		[spritenum, model].debug("CREATE EVENT NODE !");
+
+		action = {
+			model[timeKey] = origin.x;
+			model[posyKey] = origin.y;
+			//model[lenKey] = extent.x;
+		};
+
+		refresh = {
+			origin = Point(model[timeKey], model[posyKey]);
+			color = Color.black;
+			outlineColor = Color.green;
+			//extent = Point(model.use { currentEnvironment[lenKey].value(model) }, 1); // * tempo ?
+			[spritenum, origin, extent, color].debug("refresh");
+		};
+
+		this.makeUpdater;
+		this.refresh;
+		this.action;
+	}
+
+	draw {
+		var point;
+		var pos;
+		pos = this.origin;
+		point = parent.gridPointToPixelPoint(this.origin);
+		[spritenum, point].debug("draw");
+
+		Pen.color = this.color;
+		Pen.lineTo(point);
+		Pen.stroke;
+
+		Pen.color = this.outlineColor;
+		Pen.addArc(point, radius, 0, 2*pi);
+		Pen.strokeRect(this.pixelRect);
+		Pen.stroke;
+
+		Pen.color = this.color;
+		Pen.moveTo(point);
+
+	}
+
+	deselectNode {
+		outlineColor = Color.green;
+	}
+
+	pixelRect {
+		var point, rect;
+		point = parent.gridPointToPixelPoint(this.origin);
+		rect = Rect(point.x-radius, point.y-radius, radius*2, 0-radius*2)
+		^rect;
+	}
+
+	rect {
+		var point;
+		var rect;
+		rect = parent.pixelRectToGridRect(this.pixelRect);
+		^rect;
+	}
+	
+}
+
+
+
+////////////////////////////////
 
 
 DenseGridLines : GridLines {
