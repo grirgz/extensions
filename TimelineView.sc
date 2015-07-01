@@ -70,6 +70,7 @@ TimelineView : SCViewHolder {
 
 		this.makeUpdater;
 		action = {
+			model.debug("timeline action before");
 			model.reorder;
 		};
 
@@ -128,20 +129,24 @@ TimelineView : SCViewHolder {
 					{ mod.isCtrl  } {
 						// create node mode
 
-						var nodesize = Point(1/8,1);
+						var nodesize = Point(1,1);
 						var newpos;
+						debug("---------mouseDownAction: create node mode");
 						nodesize = this.gridPointToNormPoint(nodesize);
 						if(enableQuant) {
-							newpos = gpos.round(quant); 
+							newpos = gpos.trunc(quant); 
 						} {
 							newpos = gpos; 
 						};
 						model.addEvent((absTime: newpos.x, midinote: newpos.y, sustain:nodesize.x));
+						selNodes.debug("mouseDownAction: selNodes");
 						model.reorder;
+						model.changed(\refresh);
 						//this.createNode1(newpos.x, newpos.y, nodesize, fillcolor);
 						refPoint = newpos; // var used here for reference in trackfunc
 						refWidth = nodesize.x;
 						//chosennode = paraNodes.last;
+						// FIXME: findNode can find the node under the just created note
 						chosennode = this.findNode(newpos.x, newpos.y);
 						chosennode.debug("mouseDownAction: chosennode!");
 						//paraNodes.add(TimelineViewNode.new(x,y, fillcolor, bounds, nodeCount, nodeSize));
@@ -152,9 +157,11 @@ TimelineView : SCViewHolder {
 						//});
 						//startSelPoint = x-10@y-10;
 						//endSelPoint =   x-10@y-10;
+						selNodes.debug("mouseDownAction end: selNodes");
 					}
 					{ mod.isShift } {
 						if(chosennode !=nil) { // a node is selected
+							debug("---------mouseDownAction: what is this mode");
 							refPoint = gpos; // var used here for reference in trackfunc
 							refWidth = chosennode.width;
 						}
@@ -182,6 +189,7 @@ TimelineView : SCViewHolder {
 							});
 
 							if(selNodes.size < 2) {
+								debug("---------mouseDownAction: deselect all and select clicked node");
 								paraNodes.do({arg node; // deselect all nodes
 									if(node !== chosennode) {
 										this.deselectNode(node);
@@ -192,6 +200,7 @@ TimelineView : SCViewHolder {
 
 							downAction.value(chosennode);
 						}, { // no node is selected
+							debug("---------mouseDownAction: deselect all and draw selrect");
 							paraNodes.do({arg node; // deselect all nodes
 								this.deselectNode(node);
 							});
@@ -229,6 +238,7 @@ TimelineView : SCViewHolder {
 							// resize mode
 							if(chosennode != nil) { // a node is selected
 								var newwidth;
+								debug("---------mouseMoveAction: resize mode");
 								newwidth = refWidth + (gpos.x - refPoint.x);
 								if( enableQuant ) {
 									newwidth = newwidth.round(quant.x);
@@ -248,7 +258,9 @@ TimelineView : SCViewHolder {
 						} {
 							// move node
 							if(chosennode != nil) { // a node is selected
+								debug("---------mouseMoveAction: move mode");
 								// FIXME: chosennode seems to be moved and signaled two times
+								selNodes.collect({ arg x; [x.origin, x.extent, x.model] }).debug("======= selected nodes will be moved!!!");
 								chosennode.setLoc_(newpos.(chosennode));
 								block {|break|
 									selNodes.do({arg node; 
@@ -265,6 +277,8 @@ TimelineView : SCViewHolder {
 									});
 								};
 								trackAction.value(chosennode, chosennode.spritenum, this.normPointToGridPoint(chosennode.nodeloc));
+								selNodes.collect({ arg x; [x.origin, x.extent, x.model] }).debug("======= selected nodes was moved!!!");
+								model.print; 
 							} { // no node is selected
 								if( startSelPoint.debug("startSelPoint") != Point(0,0) ) {
 									endSelPoint = npos;
@@ -288,6 +302,8 @@ TimelineView : SCViewHolder {
 
 				var bounds = this.bounds;
 				mouseUpAction.(me, x, y, mod);
+				selNodes.debug("-------------- mouseUpAction: selNodes");
+				chosennode.debug("mouseUpAction: chosennode");
 				if(chosennode !=nil, { // a node is selected
 					upAction.value(chosennode);
 					paraNodes.do({arg node; 
@@ -432,11 +448,11 @@ TimelineView : SCViewHolder {
 		debug("start drawing nodes");
 
 		paraNodes.do({arg node;
-			[node, node.spritenum].debug("drawing node");
+			//[node, node.spritenum].debug("drawing node");
 			node.draw;
 		});
 
-		debug("stop drawing nodes");
+		//debug("stop drawing nodes");
 		Pen.stroke;		
 	}
 
@@ -485,8 +501,8 @@ TimelineView : SCViewHolder {
 
 	gridRectToNormRect { arg rect;
 		^Rect.fromPoints(
-			this.gridPointToNormPoint(rect.origin).debug("gridRectToNormRect: origin"),
-			this.gridPointToNormPoint(rect.rightBottom).debug("gridRectToNormRect: rb"),
+			this.gridPointToNormPoint(rect.origin),
+			this.gridPointToNormPoint(rect.rightBottom),
 		);
 	}
 
@@ -498,7 +514,7 @@ TimelineView : SCViewHolder {
 	}
 
 	gridRectToPixelRect { arg rect;
-		^this.normRectToPixelRect(this.gridRectToNormRect(rect.debug("gridRectToPixelRect: rect")));
+		^this.normRectToPixelRect(this.gridRectToNormRect(rect));
 	}
 
 	pixelRectToGridRect { arg rect;
@@ -545,6 +561,7 @@ TimelineView : SCViewHolder {
 		paraNodes.do { arg node;
 			node.free;
 		};
+		selNodes = Set.new;
 		paraNodes = List.new;
 		connections = List.new;
 		nodeCount = 0;
@@ -599,6 +616,7 @@ TimelineView : SCViewHolder {
 	}
 
 	refreshEventList {
+		model.debug("refreshEventList");
 		this.clearSpace;
 		model.do { arg event;
 			this.addEvent(event)
@@ -607,12 +625,9 @@ TimelineView : SCViewHolder {
 
 	mapEventList { arg eventlist;
 		paraNodes.debug("mapEventList");
-		this.clearSpace;
-		paraNodes.debug("mapEventList2");
 		model = eventlist;
-		eventlist.do { arg event;
-			this.addEvent(event)
-		};
+		this.refreshEventList;
+		paraNodes.debug("mapEventList2");
 
 		this.makeUpdater;
 		
@@ -1019,6 +1034,7 @@ TimelineViewEventNode {
 		[spritenum, model].debug("CREATE EVENT NODE !");
 
 		action = {
+			[model, origin, extent].debug("node action before");
 			model[timeKey] = origin.x;
 			model[posyKey] = origin.y;
 			model[lenKey] = extent.x;
@@ -1029,7 +1045,7 @@ TimelineViewEventNode {
 			color = Color.green;
 			outlineColor = Color.black;
 			extent = Point(model.use { currentEnvironment[lenKey].value(model) }, 1); // * tempo ?
-			[spritenum, origin, extent, color].debug("refresh");
+			[spritenum, origin, extent, color].debug("node refresh");
 		};
 
 		this.makeUpdater;
@@ -1095,7 +1111,7 @@ TimelineViewEventNode {
 		Pen.color = this.color;
 		pos = this.origin;
 		rect = parent.gridRectToPixelRect(this.rect);
-		[spritenum, rect].debug("draw");
+		//[spritenum, rect].debug("draw");
 		Pen.fillRect(rect);
 		Pen.color = this.outlineColor;
 		Pen.strokeRect(rect);
@@ -1135,6 +1151,7 @@ TimelineEnvViewNode : TimelineViewEventNode {
 		[spritenum, model].debug("CREATE EVENT NODE !");
 
 		action = {
+			[model, origin].debug("node action before");
 			model[timeKey] = origin.x;
 			model[posyKey] = origin.y;
 			//model[lenKey] = extent.x;
