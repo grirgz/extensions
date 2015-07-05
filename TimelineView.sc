@@ -85,7 +85,7 @@ TimelineView : SCViewHolder {
  		//bounds = mouseTracker.bounds; // thanks ron!
  		
 		background = Color.white;
-		this.view.background = Color.red(0.9);
+		this.view.background = Color.white(0.9);
 		//fillcolor = Color.new255(103, 148, 103);
 		//fillcolor = Color.green;
 		outlinecolor = Color.red;
@@ -329,82 +329,7 @@ TimelineView : SCViewHolder {
 			})
 
 			.drawFunc_({		
-				//var bounds = this.view.bounds;
-				var bounds = this.bounds;
-				var pstartSelPoint, pendSelPoint;
-				var grid;
-	
-				pen.width = 1;
-				pen.color = background; // background color
-				pen.fillRect(Rect(0,0, bounds.width, bounds.height)); // background fill
-				backgrDrawFunc.value; // background draw function
-
-				// grid
-
-				mygrid.debug("===============mygrid");
-				grid = mygrid.(bounds, areasize, viewport);
-				grid.debug("grid");
-				grid = grid ? DrawGrid(Rect(0,0,bounds.width,bounds.height), 
-					ControlSpec(
-							( areasize.x * viewport.origin.x ), 
-							areasize.x * viewport.width + ( areasize.x * viewport.origin.x ), 
-							\lin,
-							0,
-							0
-					).grid,
-					\midinote.asSpec.grid
-				);
-				grid.draw;
-
-				// explicit grid
-
-				areasize.y.do { arg py;
-					pen.line(this.gridPointToPixelPoint(Point(0,py)),this.gridPointToPixelPoint(Point(areasize.x, py)));
-				};
-				
-				// the lines
-
-				pen.color = Color.black;
-				connections.do({arg conn;
-					pen.line(this.normPointToPixelPoint(paraNodes[conn[0]].nodeloc)+0.5, this.normPointToPixelPoint(paraNodes[conn[1]].nodeloc)+0.5);
-				});
-				pen.stroke;
-
-				// end line
-
-				pen.line(
-					this.gridPointToPixelPoint(Point(model.playingDur, areasize.y)),
-					this.gridPointToPixelPoint(Point(model.playingDur, 0))
-				);
-				pen.stroke;
-				
-				// the nodes or circles
-
-				this.drawNodes;
-				
-				// the selection node
-
-				pstartSelPoint = this.normPointToPixelPoint(startSelPoint);
-				pendSelPoint = this.normPointToPixelPoint(endSelPoint);
-
-				pen.color = selectFillColor;
-				pen.fillRect(Rect(	pstartSelPoint.x + 0.5, 
-									pstartSelPoint.y + 0.5,
-									pendSelPoint.x - pstartSelPoint.x,
-									pendSelPoint.y - pstartSelPoint.y
-									));
-				pen.color = selectStrokeColor;
-				pen.strokeRect(Rect(	pstartSelPoint.x + 0.5, 
-									pstartSelPoint.y + 0.5,
-									pendSelPoint.x - pstartSelPoint.x,
-									pendSelPoint.y - pstartSelPoint.y
-									));
-
-
-				// background frame
-
-				pen.color = Color.black;
-				pen.strokeRect(Rect(0,0, bounds.width, bounds.height)); 
+				this.drawFunc;
 			})
 
 			.keyDownAction_({ |me, key, modifiers, unicode, keycode |
@@ -441,6 +366,87 @@ TimelineView : SCViewHolder {
 				if(unicode == 99, {conFlag = false;}); // c is for connecting
 
 			});
+	}
+
+	drawFunc {
+		//var bounds = this.view.bounds;
+		var pen = Pen;
+		var bounds = this.bounds;
+		var pstartSelPoint, pendSelPoint;
+		var grid;
+
+		pen.width = 1;
+		pen.color = background; // background color
+		pen.fillRect(Rect(0,0, bounds.width, bounds.height)); // background fill
+		backgrDrawFunc.value; // background draw function
+
+		// grid
+
+		mygrid.debug("===============mygrid");
+		grid = mygrid.(bounds, areasize, viewport);
+		grid.debug("grid");
+		grid = grid ? DrawGrid(Rect(0,0,bounds.width,bounds.height), 
+			ControlSpec(
+					( areasize.x * viewport.origin.x ), 
+					areasize.x * viewport.width + ( areasize.x * viewport.origin.x ), 
+					\lin,
+					0,
+					0
+			).grid,
+			\midinote.asSpec.grid
+		);
+		grid.draw;
+
+		// explicit grid
+
+		areasize.y.do { arg py;
+			pen.line(this.gridPointToPixelPoint(Point(0,py)),this.gridPointToPixelPoint(Point(areasize.x, py)));
+		};
+		
+		// the lines
+
+		pen.color = Color.black;
+		connections.do({arg conn;
+			pen.line(this.normPointToPixelPoint(paraNodes[conn[0]].nodeloc)+0.5, this.normPointToPixelPoint(paraNodes[conn[1]].nodeloc)+0.5);
+		});
+		pen.stroke;
+
+		// end line
+
+		pen.line(
+			this.gridPointToPixelPoint(Point(model.playingDur, areasize.y)),
+			this.gridPointToPixelPoint(Point(model.playingDur, 0))
+		);
+		pen.stroke;
+		
+		// the nodes or circles
+
+		this.drawNodes;
+		
+		// the selection node
+
+		pstartSelPoint = this.normPointToPixelPoint(startSelPoint);
+		pendSelPoint = this.normPointToPixelPoint(endSelPoint);
+
+		pen.color = selectFillColor;
+		pen.fillRect(Rect(	pstartSelPoint.x + 0.5, 
+							pstartSelPoint.y + 0.5,
+							pendSelPoint.x - pstartSelPoint.x,
+							pendSelPoint.y - pstartSelPoint.y
+							));
+		pen.color = selectStrokeColor;
+		pen.strokeRect(Rect(	pstartSelPoint.x + 0.5, 
+							pstartSelPoint.y + 0.5,
+							pendSelPoint.x - pstartSelPoint.x,
+							pendSelPoint.y - pstartSelPoint.y
+							));
+
+
+		// background frame
+
+		pen.color = Color.black;
+		pen.strokeRect(Rect(0,0, bounds.width, bounds.height)); 
+
 	}
 
 	drawNodes {
@@ -592,7 +598,7 @@ TimelineView : SCViewHolder {
 	}
 
 	nodeClass {
-		^TimelineViewEventNode
+		^TimelineViewNode
 	}
 
 	addEvent { arg event;
@@ -899,107 +905,191 @@ TimelineView : SCViewHolder {
 	}
 }
 
+////////////////////////////////
+
+TimelinePreview : TimelineView {
+	drawFunc {
+		this.drawNodes;
+	}
+}
+
+////////////////////////////////
+
+// not used anymore
+//TimelineViewNode {
+//	var <>fillrect, <>state, <>size, <rect, <>nodeloc, <>refloc, <>color, <>outlinecolor;
+//	var <width, <height;
+//	var <>spritenum, <>temp;
+//	var <>len;
+//	var <>align;
+//	var bounds;
+//	var <>string;
+//	var <>model;
+//	
+//	*new { arg x, y, color, bounds, spnum, size, align=\topLeft; 
+//		^super.new.initGridNode(x, y, color, bounds, spnum, size, align);
+//	}
+//
+//	compute_rect { arg point;
+//		//align.debug("TimelineViewNode: align");
+//		switch(align,
+//			\centerLeft, {
+//				//align.debug("TimelineViewNode1: align");
+//				rect = Rect(nodeloc.x+0.5, nodeloc.y-(height/2)+0.5, width, height);
+//			},
+//			\center,  {
+//				//align.debug("TimelineViewNode2: align");
+//				rect = Rect(nodeloc.x-(width/2)+0.5, nodeloc.y-(height/2)+0.5, width, height);
+//			},
+//			\debug,  {
+//				//align.debug("TimelineViewNode2: align");
+//				rect = Rect(nodeloc.x, nodeloc.y, width, height);
+//			},
+//			{
+//				rect = Rect(nodeloc.x+0.5, nodeloc.y+0.5, width, height);
+//			}
+//		);
+//	}
+//	
+//	initGridNode { arg argX, argY, argcolor, argbounds, spnum, argsize, argalign;
+//		spritenum = spnum;
+//		nodeloc =  Point(argX, argY);	
+//		refloc = nodeloc;
+//		color = argcolor;	
+//		outlinecolor = Color.black;
+//		this.extent = argsize;
+//		bounds = argbounds;
+//		align = argalign;
+//		this.compute_rect;
+//		string = "";
+//		temp = nil;
+//	}
+//		
+//	setLoc_ {arg point;
+//		nodeloc = point;
+//		// keep paranode inside the bounds
+//		if((point.x) > bounds.width, {nodeloc.x = bounds.width - 0.5});
+//		if((point.x) < 0, {nodeloc.x = 0.5});
+//		if((point.y) > bounds.height, {nodeloc.y = bounds.height -0.5});
+//		if((point.y) < 0, {nodeloc.y = 0.5});
+//		this.compute_rect;
+//	}
+//	
+//	origin_ { arg point;
+//		this.setLoc_(point)
+//	}
+//
+//	origin {
+//		^nodeloc
+//	}
+//		
+//	setState_ {arg argstate;
+//		state = argstate;
+//	}
+//	
+//	getState {
+//		^state;
+//	}
+//
+//	width_ { arg val;
+//		width = val;	
+//		this.compute_rect;
+//	}
+//	
+//	height_ {arg val;
+//		height = val;
+//		this.compute_rect;
+//	}
+//
+//	extent {
+//		^Point(width, height)
+//	}
+//
+//	extent_ { arg point;
+//		width = point.x;
+//		height = point.y;
+//		this.compute_rect;
+//	}
+//	
+//	setColor_ {arg argcolor;
+//		color = argcolor;
+//	}
+//	
+//	getColor {
+//		^color;
+//	}
+//}
+
 TimelineViewNode {
-	var <>fillrect, <>state, <>size, <rect, <>nodeloc, <>refloc, <>color, <>outlinecolor;
-	var <width, <height;
-	var <>spritenum, <>temp;
-	var <>len;
-	var <>align;
-	var bounds;
-	var <>string;
-	var <>model;
-	
-	*new { arg x, y, color, bounds, spnum, size, align=\topLeft; 
-		^super.new.initGridNode(x, y, color, bounds, spnum, size, align);
+	*new { arg parent, nodeidx, event;
+		super.new.initWrapper(parent, nodeidx, event)
 	}
 
-	compute_rect { arg point;
-		//align.debug("TimelineViewNode: align");
-		switch(align,
-			\centerLeft, {
-				//align.debug("TimelineViewNode1: align");
-				rect = Rect(nodeloc.x+0.5, nodeloc.y-(height/2)+0.5, width, height);
-			},
-			\center,  {
-				//align.debug("TimelineViewNode2: align");
-				rect = Rect(nodeloc.x-(width/2)+0.5, nodeloc.y-(height/2)+0.5, width, height);
-			},
-			\debug,  {
-				//align.debug("TimelineViewNode2: align");
-				rect = Rect(nodeloc.x, nodeloc.y, width, height);
+	*initWrapper { arg parent, nodeidx, event;
+		^switch(event[\nodeType],
+			\eventlist, {
+				TimelineViewEventListNode(parent, nodeidx, event)
 			},
 			{
-				rect = Rect(nodeloc.x+0.5, nodeloc.y+0.5, width, height);
+				TimelineViewEventNode(parent, nodeidx, event)
 			}
-		);
+		)
 	}
-	
-	initGridNode { arg argX, argY, argcolor, argbounds, spnum, argsize, argalign;
-		spritenum = spnum;
-		nodeloc =  Point(argX, argY);	
-		refloc = nodeloc;
-		color = argcolor;	
-		outlinecolor = Color.black;
-		this.extent = argsize;
-		bounds = argbounds;
-		align = argalign;
-		this.compute_rect;
-		string = "";
-		temp = nil;
-	}
-		
-	setLoc_ {arg point;
-		nodeloc = point;
-		// keep paranode inside the bounds
-		if((point.x) > bounds.width, {nodeloc.x = bounds.width - 0.5});
-		if((point.x) < 0, {nodeloc.x = 0.5});
-		if((point.y) > bounds.height, {nodeloc.y = bounds.height -0.5});
-		if((point.y) < 0, {nodeloc.y = 0.5});
-		this.compute_rect;
-	}
-	
-	origin_ { arg point;
-		this.setLoc_(point)
+}
+
+TimelineViewEventListNode : TimelineViewEventNode {
+	var label;
+	var preview;
+	*new { arg parent, nodeidx, event;
+		^super.new.init(parent, nodeidx, event);
 	}
 
-	origin {
-		^nodeloc
-	}
-		
-	setState_ {arg argstate;
-		state = argstate;
-	}
-	
-	getState {
-		^state;
+	init { arg xparent, nodeidx, event;
+		parent = xparent;
+		spritenum = nodeidx;
+		model = event;
+
+		preview = TimelinePreview.new;
+
+		[spritenum, model].debug("CREATE EVENT NODE !");
+
+		action = {
+			[model, origin, extent].debug("node action before");
+			model[timeKey] = origin.x;
+			model[posyKey] = origin.y;
+			model[lenKey] = extent.x;
+		};
+
+		refresh = {
+			origin = Point(model[timeKey], model[posyKey]);
+			color = Color.green;
+			outlineColor = Color.black;
+			extent = Point(model.use { currentEnvironment[lenKey].value(model) }, 1); // * tempo ?
+			label = model[\label] ? "unnamed";
+			preview.mapEventList(model[\eventlist]);
+			[spritenum, origin, extent, color].debug("node refresh");
+		};
+
+		this.makeUpdater;
+		this.refresh;
+		this.action;
 	}
 
-	width_ { arg val;
-		width = val;	
-		this.compute_rect;
-	}
-	
-	height_ {arg val;
-		height = val;
-		this.compute_rect;
-	}
+	draw {
+		var rect;
+		var pos;
+		Pen.color = this.color;
+		pos = this.origin;
+		rect = parent.gridRectToPixelRect(this.rect);
+		//[spritenum, rect].debug("draw");
+		Pen.fillRect(rect);
 
-	extent {
-		^Point(width, height)
-	}
+		Pen.color = this.outlineColor;
+		Pen.strokeRect(rect);
 
-	extent_ { arg point;
-		width = point.x;
-		height = point.y;
-		this.compute_rect;
-	}
-	
-	setColor_ {arg argcolor;
-		color = argcolor;
-	}
-	
-	getColor {
-		^color;
+		Pen.string(label);
+		preview.drawFunc;
+		//Pen.stroke;
 	}
 }
 
@@ -1131,6 +1221,7 @@ TimelineViewEventNode {
 		if(controller.notNil) {controller.remove};
 	}
 }
+
 
 ////////////////////////////////
 
