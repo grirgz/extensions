@@ -16,12 +16,12 @@ TimelineView : SCViewHolder {
 	var <>createNodeHook;
 	var <>deleteNodeHook;
 	var <>paraNodes, connections; 
-	var chosennode, mouseTracker;
+	var <chosennode, mouseTracker;
 	var <>quant;
 	var <>enableQuant = true;
 	var <userView;
 	var win;
-	//var <bounds;
+	var >virtualBounds;
 	var downAction, upAction, trackAction, keyDownAction, rightDownAction, overAction, connAction;
 	var <>mouseDownAction;
 	var <>mouseUpAction;
@@ -46,6 +46,14 @@ TimelineView : SCViewHolder {
 	var makeUpdater;
 	var model;
 	var controller;
+
+	var endEvent;
+	var mouseButtonNumber;
+	var mouseClickCount;
+
+	var createNodeDeferedAction;
+
+	var >eventFactory;
 
 	
 	*new { arg w, bounds; 
@@ -119,6 +127,10 @@ TimelineView : SCViewHolder {
 				var npos;
 				var gpos;
 				var nquant = this.gridPointToNormPoint(quant);
+
+				mouseButtonNumber = buttonNumber;
+				mouseClickCount = clickCount;
+
 				npos = this.pixelPointToNormPoint(Point(px,py));
 				gpos = this.pixelPointToGridPoint(Point(px,py));
 				mouseDownAction.(me, px, py, mod, buttonNumber, clickCount);
@@ -126,42 +138,44 @@ TimelineView : SCViewHolder {
 				chosennode = this.findNode(gpos.x, gpos.y);
 
 				case
-					{ mod.isCtrl  } {
+					{ mod.isCtrl and: { buttonNumber == 1 } } {
+						this.setEndPosition(gpos.x);
+					}
+					{ mod.isCtrl and: { buttonNumber == 0 } } {
 						// create node mode
 
-						var nodesize = Point(1,1);
+						//var nodesize = Point(1,1);
 						var newpos;
+						var newevent;
+
 						debug("---------mouseDownAction: create node mode");
-						nodesize = this.gridPointToNormPoint(nodesize);
+
+						//nodesize = this.gridPointToNormPoint(nodesize);
+
 						if(enableQuant) {
 							newpos = gpos.trunc(quant); 
 						} {
 							newpos = gpos; 
 						};
-						model.addEvent((absTime: newpos.x, midinote: newpos.y, sustain:nodesize.x));
-						selNodes.debug("mouseDownAction: selNodes");
-						model.reorder;
-						model.changed(\refresh);
-						//this.createNode1(newpos.x, newpos.y, nodesize, fillcolor);
+
+						// FIXME: the new event should come from outside of the class
+						newevent = this.eventFactory(newpos);
+						chosennode = this.addEvent(newevent);
+
+						createNodeDeferedAction = {
+							model.addEvent(newevent);
+							model.reorder;
+							model.changed(\refresh);
+						};
+
 						refPoint = newpos; // var used here for reference in trackfunc
-						refWidth = nodesize.x;
-						//chosennode = paraNodes.last;
-						// FIXME: findNode can find the node under the just created note
-						chosennode = this.findNode(newpos.x, newpos.y);
+						refWidth = chosennode.width;
+
 						chosennode.debug("mouseDownAction: chosennode!");
-						//paraNodes.add(TimelineViewNode.new(x,y, fillcolor, bounds, nodeCount, nodeSize));
-						//nodeCount = nodeCount + 1;
-						//paraNodes.do({arg node; // deselect all nodes
-						// 		node.outlinecolor = Color.black; 
-						//		node.refloc = node.nodeloc;
-						//});
-						//startSelPoint = x-10@y-10;
-						//endSelPoint =   x-10@y-10;
-						selNodes.debug("mouseDownAction end: selNodes");
 					}
-					{ mod.isShift } {
+					{ mod.isShift and: { buttonNumber == 0 } } {
 						if(chosennode !=nil) { // a node is selected
-							debug("---------mouseDownAction: what is this mode");
+							debug("---------mouseDownAction: prepare for resizing mode");
 							refPoint = gpos; // var used here for reference in trackfunc
 							refWidth = chosennode.width;
 						}
@@ -221,6 +235,10 @@ TimelineView : SCViewHolder {
 				var gpos = this.pixelPointToGridPoint(Point(px,py));
 				var nquant = this.gridPointToNormPoint(quant);
 				var newpos;
+				var buttonNumber = mouseButtonNumber;
+				var clickCount = mouseClickCount;
+
+				[buttonNumber, clickCount].debug("mouseMoveAction");
 
 				newpos = { arg node;
 					var res;
@@ -233,30 +251,33 @@ TimelineView : SCViewHolder {
 
 
 				mouseMoveAction.(me, px, py, mod);
-					case
-						{ mod.isShift or: mod.isCtrl } {
-							// resize mode
-							if(chosennode != nil) { // a node is selected
-								var newwidth;
-								debug("---------mouseMoveAction: resize mode");
-								newwidth = refWidth + (gpos.x - refPoint.x);
-								if( enableQuant ) {
-									newwidth = newwidth.round(quant.x);
-									newwidth = newwidth.max(quant.x);
-								} {
-									newwidth = newwidth.max(0);
-								};
-								chosennode.width = newwidth;
 
-								//resizeMode = true;
-								//"resize mode!!!!".debug;
-								trackAction.value(chosennode, chosennode.spritenum, this.normPointToGridPoint(chosennode.nodeloc));
-								this.refresh;
-							}
+				case
+					{ (mod.isShift or: mod.isCtrl)  and: { buttonNumber == 0 } } {
+						// resize mode
+						if(chosennode != nil) { // a node is selected
+							var newwidth;
+							debug("---------mouseMoveAction: resize mode");
+							newwidth = refWidth + (gpos.x - refPoint.x);
+							if( enableQuant ) {
+								newwidth = newwidth.round(quant.x);
+								newwidth = newwidth.max(quant.x);
+							} {
+								newwidth = newwidth.max(0);
+							};
+							chosennode.width = newwidth;
+
+							//resizeMode = true;
+							//"resize mode!!!!".debug;
+							trackAction.value(chosennode, chosennode.spritenum, this.normPointToGridPoint(chosennode.nodeloc));
+							this.refresh;
+						}
 
 
-						} {
-							// move node
+					} {
+						// move node
+						if( buttonNumber == 0 ) {
+
 							if(chosennode != nil) { // a node is selected
 								debug("---------mouseMoveAction: move mode");
 								// FIXME: chosennode seems to be moved and signaled two times
@@ -285,7 +306,8 @@ TimelineView : SCViewHolder {
 								}
 							};
 							this.refresh;
-						};
+						}
+					};
 			})
 
 			.mouseOverAction_({arg me, x, y;
@@ -305,6 +327,8 @@ TimelineView : SCViewHolder {
 				selNodes.debug("-------------- mouseUpAction: selNodes");
 				chosennode.debug("mouseUpAction: chosennode");
 				if(chosennode !=nil, { // a node is selected
+					createNodeDeferedAction.value; // function defined when a new node is created
+					createNodeDeferedAction = nil;
 					upAction.value(chosennode);
 					paraNodes.do({arg node; 
 						node.refloc = node.nodeloc;
@@ -368,16 +392,32 @@ TimelineView : SCViewHolder {
 			});
 	}
 
+	setEndPosition { arg time;
+		model.setEndPosition(time);
+		model.print;
+		this.refreshEventList;
+	}
+
+	eventFactory { arg pos;
+		if(eventFactory.isNil) {
+			var nodesize = Point(1,1);
+			nodesize = this.gridPointToNormPoint(nodesize);
+			^(absTime: pos.x, midinote: pos.y, sustain:nodesize.x);
+		} {
+			^eventFactory.(pos);
+		}
+	}
+
 	drawFunc {
 		//var bounds = this.view.bounds;
 		var pen = Pen;
-		var bounds = this.bounds;
+		var bounds = this.virtualBounds;
 		var pstartSelPoint, pendSelPoint;
 		var grid;
 
 		pen.width = 1;
 		pen.color = background; // background color
-		pen.fillRect(Rect(0,0, bounds.width, bounds.height)); // background fill
+		pen.fillRect(bounds); // background fill
 		backgrDrawFunc.value; // background draw function
 
 		// grid
@@ -413,11 +453,7 @@ TimelineView : SCViewHolder {
 
 		// end line
 
-		pen.line(
-			this.gridPointToPixelPoint(Point(model.playingDur, areasize.y)),
-			this.gridPointToPixelPoint(Point(model.playingDur, 0))
-		);
-		pen.stroke;
+		this.drawEndLine;
 		
 		// the nodes or circles
 
@@ -445,7 +481,7 @@ TimelineView : SCViewHolder {
 		// background frame
 
 		pen.color = Color.black;
-		pen.strokeRect(Rect(0,0, bounds.width, bounds.height)); 
+		pen.strokeRect(bounds); 
 
 	}
 
@@ -462,8 +498,23 @@ TimelineView : SCViewHolder {
 		Pen.stroke;		
 	}
 
+	drawEndLine {
+		if(endEvent.notNil) {
+			Pen.line(
+				this.gridPointToPixelPoint(Point(endEvent[\absTime], areasize.y)),
+				this.gridPointToPixelPoint(Point(endEvent[\absTime], 0))
+			);
+			Pen.stroke;
+		}
+
+	}
+
 	bounds { 
 		^this.view.bounds
+	}
+
+	virtualBounds {
+		^(virtualBounds ? Rect(0,0,this.bounds.width, this.bounds.height));
 	}
 
 	action {
@@ -486,20 +537,20 @@ TimelineView : SCViewHolder {
 	///////////////// coordinates conversion
 
 	normRectToPixelRect { arg rect;
-		var bounds = this.bounds;
+		var bounds = this.virtualBounds;
 		^Rect(
-			rect.origin.x * bounds.extent.x / viewport.extent.x - ( viewport.origin.x * bounds.extent.x ), 
-			( 1-rect.origin.y ) * bounds.extent.y / viewport.extent.y - ( viewport.origin.y * bounds.extent.y ),
+			rect.origin.x * bounds.extent.x / viewport.extent.x - ( viewport.origin.x * bounds.extent.x ) + bounds.origin.x, 
+			( 1-rect.origin.y ) * bounds.extent.y / viewport.extent.y - ( viewport.origin.y * bounds.extent.y ) + bounds.origin.y,
 			rect.width * bounds.extent.x/ viewport.extent.x,
 			(0 - (rect.height * bounds.extent.y) ) / viewport.extent.y,
 		);
 	}
 
 	pixelRectToNormRect { arg rect;
-		var bounds = this.bounds;
+		var bounds = this.virtualBounds;
 		^Rect(
-			rect.origin.x + ( viewport.origin.x * bounds.extent.x ) / bounds.extent.x * viewport.extent.x,
-			1-(rect.origin.y + ( viewport.origin.y * bounds.extent.y ) / bounds.extent.y * viewport.extent.y),
+			rect.origin.x + ( viewport.origin.x * bounds.extent.x ) - bounds.origin.x / bounds.extent.x * viewport.extent.x,
+			1-(rect.origin.y + ( viewport.origin.y * bounds.extent.y ) - bounds.origin.y / bounds.extent.y * viewport.extent.y),
 			rect.width / bounds.extent.x * viewport.extent.x,
 			rect.height / bounds.extent.y * viewport.extent.y,
 		);
@@ -606,9 +657,12 @@ TimelineView : SCViewHolder {
 		switch(event[\type],
 			\start, {
 				"start".debug;
+				^nil;
 			},
 			\end, {
 				"end".debug;
+				endEvent = event;
+				^nil;
 			},
 			// else
 			{
@@ -617,6 +671,7 @@ TimelineView : SCViewHolder {
 				paraNodes.add(node);
 				createNodeHook.(node, nodeCount);
 				if(refreshEnabled) { this.refresh };
+				^node;
 			}
 		)
 	}
@@ -893,7 +948,7 @@ TimelineView : SCViewHolder {
 	
 	// local function
 	findNode {arg x, y;
-		paraNodes.do({arg node; 
+		paraNodes.reverse.do({arg node; 
 			var point = Point.new(x,y);
 			[node.rect, point].debug("findNode");
 			if(node.rect.containsPoint(point), {
@@ -910,6 +965,7 @@ TimelineView : SCViewHolder {
 TimelinePreview : TimelineView {
 	drawFunc {
 		this.drawNodes;
+		this.drawEndLine;
 	}
 }
 
@@ -1022,13 +1078,12 @@ TimelinePreview : TimelineView {
 
 TimelineViewNode {
 	*new { arg parent, nodeidx, event;
-		super.new.initWrapper(parent, nodeidx, event)
-	}
-
-	*initWrapper { arg parent, nodeidx, event;
 		^switch(event[\nodeType],
 			\eventlist, {
 				TimelineViewEventListNode(parent, nodeidx, event)
+			},
+			\eventloop, {
+				TimelineViewEventLoopNode(parent, nodeidx, event)
 			},
 			{
 				TimelineViewEventNode(parent, nodeidx, event)
@@ -1037,12 +1092,33 @@ TimelineViewNode {
 	}
 }
 
+TimelineViewNodeBase {
+	var <spritenum;
+	var <model;
+	var absTime;
+	var xpos;
+	var refreshAction;
+	var timeKey = \absTime;
+	var posyKey = \midinote;
+	var lenKey = \sustain;
+	var <>origin;
+	var <>extent;
+	var <>color, <>outlineColor;
+	var parent;
+	var action;
+	var refresh;
+	var controller;
+	*new {
+		^super.new
+	}
+}
+
 TimelineViewEventListNode : TimelineViewEventNode {
 	var label;
 	var preview;
-	*new { arg parent, nodeidx, event;
-		^super.new.init(parent, nodeidx, event);
-	}
+	//*new { arg parent, nodeidx, event;
+	//	^super.new.init(parent, nodeidx, event);
+	//}
 
 	init { arg xparent, nodeidx, event;
 		parent = xparent;
@@ -1051,7 +1127,7 @@ TimelineViewEventListNode : TimelineViewEventNode {
 
 		preview = TimelinePreview.new;
 
-		[spritenum, model].debug("CREATE EVENT NODE !");
+		[spritenum, model].debug("TimelineViewEventListNode: CREATE EVENT NODE !");
 
 		action = {
 			[model, origin, extent].debug("node action before");
@@ -1078,37 +1154,84 @@ TimelineViewEventListNode : TimelineViewEventNode {
 	draw {
 		var rect;
 		var pos;
-		Pen.color = this.color;
+		var previewrect;
+		var labelrect;
+		var labelheight = 20;
+		var preview_background = Color.new255(101, 166, 62);
+		var label_background = Color.new255(130, 173, 105);
+
 		pos = this.origin;
+
 		rect = parent.gridRectToPixelRect(this.rect);
+		previewrect = rect.insetAll(0,0,0,0-labelheight);
+		labelrect = Rect(rect.origin.x, rect.origin.y+rect.height+20, rect.width, -20);
+
+		labelrect.debug("labelrect");
+		previewrect.debug("previewrect");
+		rect.debug("rect");
+
 		//[spritenum, rect].debug("draw");
+
+		Pen.color = preview_background;
 		Pen.fillRect(rect);
+		Pen.color = label_background;
+		Pen.fillRect(previewrect);
+		//Pen.color = Color.red;
+		//Pen.fillRect(labelrect);
+
 
 		Pen.color = this.outlineColor;
 		Pen.strokeRect(rect);
 
-		Pen.string(label);
-		preview.drawFunc;
+		Pen.color = Color.black;
+		Pen.stringLeftJustIn(" "++label, labelrect);
+		//Pen.stringInRect(label, labelrect);
+		//Pen.string(label);
+		preview.virtualBounds = Rect(previewrect.origin.x, previewrect.origin.y, parent.bounds.width, previewrect.height);
+		Pen.use {
+			Pen.addRect(rect);
+			Pen.clip;
+			preview.drawFunc;
+		};
 		//Pen.stroke;
 	}
 }
 
-TimelineViewEventNode {
-	var <spritenum;
-	var <model;
-	var absTime;
-	var xpos;
-	var refreshAction;
-	var timeKey = \absTime;
-	var posyKey = \midinote;
-	var lenKey = \sustain;
-	var <>origin;
-	var <>extent;
-	var <>color, <>outlineColor;
-	var parent;
-	var action;
-	var refresh;
-	var controller;
+TimelineViewEventLoopNode : TimelineViewEventListNode {
+
+	init { arg xparent, nodeidx, event;
+		parent = xparent;
+		spritenum = nodeidx;
+		model = event;
+
+		preview = TimelinePreview.new;
+
+		[spritenum, model].debug("TimelineViewEventListNode: CREATE EVENT NODE !");
+
+		action = {
+			[model, origin, extent].debug("node action before");
+			model[timeKey] = origin.x;
+			model[posyKey] = origin.y;
+			model[lenKey] = extent.x;
+		};
+
+		refresh = {
+			origin = Point(model[timeKey], model[posyKey]);
+			color = Color.green;
+			outlineColor = Color.black;
+			extent = Point(model.use { currentEnvironment[lenKey].value(model) }, 1); // * tempo ?
+			label = model[\label] ? "unnamed";
+			preview.mapEventList(model[\eventloop].list);
+			[spritenum, origin, extent, color].debug("node refresh");
+		};
+
+		this.makeUpdater;
+		this.refresh;
+		this.action;
+	}
+}
+
+TimelineViewEventNode : TimelineViewNodeBase {
 
 	var <>refloc;
 
