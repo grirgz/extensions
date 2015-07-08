@@ -433,7 +433,8 @@ TimelineView : SCViewHolder {
 					0,
 					0
 			).grid,
-			\midinote.asSpec.grid
+			nil
+			//\midinote.asSpec.grid
 		);
 		grid.draw;
 
@@ -1126,6 +1127,7 @@ TimelineViewEventListNode : TimelineViewEventNode {
 		model = event;
 
 		preview = TimelinePreview.new;
+		preview.areasize.x = parent.areasize.x;
 
 		[spritenum, model].debug("TimelineViewEventListNode: CREATE EVENT NODE !");
 
@@ -1187,13 +1189,23 @@ TimelineViewEventListNode : TimelineViewEventNode {
 		Pen.stringLeftJustIn(" "++label, labelrect);
 		//Pen.stringInRect(label, labelrect);
 		//Pen.string(label);
-		preview.virtualBounds = Rect(previewrect.origin.x, previewrect.origin.y, parent.bounds.width, previewrect.height);
+		preview.virtualBounds = Rect(previewrect.leftBottom.x, previewrect.leftBottom.y, parent.bounds.width, 0-previewrect.height);
 		Pen.use {
 			Pen.addRect(rect);
 			Pen.clip;
 			preview.drawFunc;
 		};
 		//Pen.stroke;
+	}
+
+	makeUpdater {
+		if(controller.notNil) {controller.remove};
+		controller = SimpleController(model).put(\refresh, {
+			this.refresh;
+		})
+		//controller = SimpleController(model[\eventlist]).put(\refresh, {
+		//	this.refresh;
+		//})
 	}
 }
 
@@ -1205,6 +1217,7 @@ TimelineViewEventLoopNode : TimelineViewEventListNode {
 		model = event;
 
 		preview = TimelinePreview.new;
+		preview.areasize.x = parent.areasize.x;
 
 		[spritenum, model].debug("TimelineViewEventListNode: CREATE EVENT NODE !");
 
@@ -1228,6 +1241,21 @@ TimelineViewEventLoopNode : TimelineViewEventListNode {
 		this.makeUpdater;
 		this.refresh;
 		this.action;
+	}
+
+	makeUpdater {
+		if(controller.notNil) {controller.remove};
+		controller = SimpleController(model).put(\refresh, {
+			this.refresh;
+		})
+		// TODO: 
+		// - add inner_controller to eventlist too
+		// - free inner_controller
+		// - I think eventloop doesnt broadcast signals, maybe he should listen to list also
+		//		- maybe it's too much controller, think of another approach
+		//inner_controller = SimpleController(model[\eventloop]).put(\refresh, {
+		//	this.refresh;
+		//})
 	}
 }
 
