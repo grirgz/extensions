@@ -10,7 +10,8 @@ ModKnob : SCViewHolder {
 	var <>polarity1, <>polarity2, <>polarity3;
 	var <valueAction;
 	var <keyDownAction;
-	var <>mouse_edit_pixel_range = 100;
+	var <>mouse_edit_pixel_range = 1000;
+	var <>color1, <>color2, <>color3;
 
 	*new { |argParent, argBounds|
 			^super.new.prInit( argParent, argBounds );
@@ -37,6 +38,14 @@ ModKnob : SCViewHolder {
 		)
 	}
 
+	get_range { arg idx, val;
+		^switch(idx,
+			0, { range1 },
+			1, { range2 },
+			2, { range3 }
+		)
+	}
+
 	set_polarity { arg idx, val;
 		switch(idx,
 			0, { polarity1 = val },
@@ -51,9 +60,13 @@ ModKnob : SCViewHolder {
 
 	prInit { |argParent, argBounds|
 
+		color1 = Color.green;
+		color2 = Color.red;
+		color3 = Color.blue;
 
 		//this.view = UserView.new(argParent, argBounds.insetBy(20,20));
 		this.view = UserView.new(argParent, argBounds);
+		this.view.minSize = Point(30,30);
 
 		this.view.mouseDownAction =  { arg view, x, y;
 			this.x_offset = x;
@@ -171,9 +184,9 @@ ModKnob : SCViewHolder {
 
 			Pen.width = 2;
 
-			draw_arc.(range1, pos, polarity1, mysize/rayon[2], Color.green);
-			draw_arc.(range2, pos, polarity2, mysize/rayon[1], Color.red);
-			draw_arc.(range3, pos, polarity3, mysize/rayon[0], Color.blue);
+			draw_arc.(range1, pos, polarity1, mysize/rayon[2], color1);
+			draw_arc.(range2, pos, polarity2, mysize/rayon[1], color2);
+			draw_arc.(range3, pos, polarity3, mysize/rayon[0], color3);
 			//"QUOI__3".debug;
 
 		};
