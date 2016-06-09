@@ -183,163 +183,6 @@ Veco {
 }
 
 
-BufDef {
-	classvar <>client = \veco;
-	classvar <>all;
-	classvar <>root;
-
-	*initClass {
-		all = IdentityDictionary.new;
-		root = "~/Musique/sc/samplekit".standardizePath;
-	}
-
-	*new { arg name, path;
-		path = this.my_new(name, path);
-		path.debug("BufDef.new: path");
-		^BufferPool.get_stereo_sample(client, path);
-	}
-
-	*mono { arg name, path;
-		path = this.my_new(name, path);
-		^BufferPool.get_mono_sample(client, path);
-	}
-
-	*my_new { arg name, path;
-		if(path.isNil) {
-			path = all.at(name);
-			path = this.relpath_to_abspath(path);
-		} {
-			all.put(name, path);
-			path = this.relpath_to_abspath(path);
-		};
-		^path;
-	}
-
-	*relpath_to_abspath { arg path;
-		if(PathName(path).isRelativePath) {
-			^(root +/+ path)
-		} {
-			^path
-		}
-	}
-
-	*freeClient {
-		BufferPool.release_client(client)
-	}
-
-	*freeAll {
-		BufferPool.reset;	
-	}
-
-}
-
-WavetableDef : BufDef {
-
-	classvar <>client = \veco;
-	classvar <>all;
-	classvar <>root;
-
-	*initClass {
-		all = IdentityDictionary.new;
-		root = "~/Musique/sc/samplekit/wavetable".standardizePath;
-	}
-	
-	*new { arg name, path;
-		path = this.my_new(name, path);
-		path.debug("WavetableDef.new: path");
-		^BufferPool.get_wavetable_sample(client, path);
-	}
-
-
-}
-
-BusDef {
-	
-	classvar <>client = \veco;
-	classvar <>all;
-	classvar <>root;
-
-	*initClass {
-		all = IdentityDictionary.new;
-		root = "~/Musique/sc/samplekit".standardizePath;
-	}
-
-	*new { arg name, rate, channels;
-		var bus;
-
-		//if(~veco_project_path.notNil) {
-		//	client = ~veco_project_path;
-		//}
-
-		if(all.at(name).notNil or: {rate.isNil}) {
-			bus = all.at(name)
-		} {
-			if(channels.isNil) {
-				if(rate == \audio) {
-					channels = 2
-				} {
-					channels = 1
-				};
-			};
-			bus = Bus.alloc(rate, Server.default, channels);
-			this.watchServer(Server.default);
-			all.put(name, bus);
-		};
-		^bus;
-	}
-
-	*free { arg name;
-		all.at(name).free;
-		all.put(name, nil);
-	}
-
-	*freeClient {
-		this.freeAll;
-	}
-
-	*freeAll {
-		all.do { _.free };	
-		all = IdentityDictionary.new;
-	}
-
-	*watchServer { |server|
-		if(NotificationCenter.registrationExists(server,\newAllocators,this).not,{
-			NotificationCenter.register(server,\newAllocators,this,{
-				this.freeAll;
-			});
-		});
-	}
-
-}
-
-GroupDef {
-	classvar <>groupdict;
-
-	*initClass {
-		groupdict = Dictionary.new;
-	}
-
-	*newGroup { arg target, addaction;
-		^Group.new(target, addaction)
-	}
-
-	*new { arg name, target, addaction='addToHead';
-		var group;
-		target = target ? Server.default;
-		if(groupdict[name].isNil or: { groupdict[name].isPlaying.not }) {
-			groupdict[name] = this.newGroup(target, addaction);
-			groupdict[name].register(true);
-		};
-		^groupdict[name]
-	}
-}
-
-ParGroupDef : GroupDef {
-	*newGroup { arg target, addaction;
-		^ParGroup.new(target, addaction)
-	}
-}
-
 
 Sdef {
 	//classvar storage;
@@ -384,6 +227,7 @@ Sdef {
 }
 
 
+// BusDef etc are moved in Param quark
 
 
 + NodeProxy {
@@ -392,16 +236,6 @@ Sdef {
 			this.put(nil, obj, 0)
 		} {
 			this.put(nil, obj, 0, nil, false);
-		}
-	}
-}
-
-+ Boolean {
-	blend { arg that, blendfact;
-		if(blendfact < 0.5) {
-			^this
-		} {
-			^that
 		}
 	}
 }
